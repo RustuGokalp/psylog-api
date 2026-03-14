@@ -3,10 +3,15 @@ package com.gokalp.psylog_api.service;
 import com.gokalp.psylog_api.dto.request.ContactRequest;
 import com.gokalp.psylog_api.entity.ContactMessage;
 import com.gokalp.psylog_api.repository.ContactMessageRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ContactService {
+
+    private static final Logger log = LoggerFactory.getLogger(ContactService.class);
 
     private final ContactMessageRepository contactMessageRepository;
 
@@ -14,6 +19,7 @@ public class ContactService {
         this.contactMessageRepository = contactMessageRepository;
     }
 
+    @Transactional
     public void save(ContactRequest request) {
         ContactMessage message = new ContactMessage();
         message.setName(request.getName());
@@ -21,5 +27,6 @@ public class ContactService {
         message.setSubject(request.getSubject());
         message.setMessage(request.getMessage());
         contactMessageRepository.save(message);
+        log.info("Contact message received from: {}", request.getEmail());
     }
 }

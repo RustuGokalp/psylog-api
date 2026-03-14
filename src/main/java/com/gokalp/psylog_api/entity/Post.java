@@ -41,6 +41,8 @@ public class Post {
 
     private LocalDateTime updatedAt;
 
+    private LocalDateTime publishAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -71,4 +73,6 @@ public class Post {
     public void setPublished(boolean published) { this.published = published; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public LocalDateTime getPublishAt() { return publishAt; }
+    public void setPublishAt(LocalDateTime publishAt) { this.publishAt = publishAt; }
 }

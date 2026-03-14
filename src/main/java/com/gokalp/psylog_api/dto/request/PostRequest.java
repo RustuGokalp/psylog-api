@@ -3,6 +3,7 @@ package com.gokalp.psylog_api.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class PostRequest {
@@ -23,6 +24,8 @@ public class PostRequest {
     @NotNull
     private Boolean published;
 
+    private LocalDateTime publishAt;
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getSummary() { return summary; }
@@ -35,4 +38,6 @@ public class PostRequest {
     public void setTags(List<String> tags) { this.tags = tags; }
     public Boolean getPublished() { return published; }
     public void setPublished(Boolean published) { this.published = published; }
+    public LocalDateTime getPublishAt() { return publishAt; }
+    public void setPublishAt(LocalDateTime publishAt) { this.publishAt = publishAt; }
 }

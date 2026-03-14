@@ -5,6 +5,8 @@ import com.gokalp.psylog_api.dto.response.AuthResponse;
 import com.gokalp.psylog_api.entity.User;
 import com.gokalp.psylog_api.repository.UserRepository;
 import com.gokalp.psylog_api.security.JwtUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
@@ -31,6 +35,7 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
         } catch (AuthenticationException e) {
+            log.warn("Failed login attempt for email: {}", request.getEmail());
             throw new RuntimeException("Invalid email or password");
         }
 
@@ -38,6 +43,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String token = jwtUtil.generateToken(user);
+        log.info("Admin logged in: {}", user.getEmail());
 
         AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(
                 user.getId(),
