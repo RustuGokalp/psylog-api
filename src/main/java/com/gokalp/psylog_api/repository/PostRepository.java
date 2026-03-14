@@ -13,6 +13,8 @@ import java.util.Optional;
 public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByPublishedTrueOrderByCreatedAtDesc();
     Optional<Post> findBySlugAndPublishedTrue(String slug);
+    boolean existsBySlug(String slug);
+    boolean existsBySlugAndIdNot(String slug, Long id);
 
     @Modifying
     @Query("UPDATE Post p SET p.published = true WHERE p.published = false AND p.publishAt IS NOT NULL AND p.publishAt <= :now")

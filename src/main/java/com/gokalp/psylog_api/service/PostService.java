@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PostService {
@@ -56,7 +57,7 @@ public class PostService {
     public PostDetailResponse createPost(PostRequest request) {
         Post post = new Post();
         post.setTitle(request.getTitle());
-        post.setSlug(generateSlug(request.getTitle()));
+        post.setSlug(generateUniqueSlug(request.getTitle(), null));
         post.setSummary(request.getSummary());
         post.setContent(request.getContent());
         post.setCoverImage(request.getCoverImage());
@@ -73,7 +74,7 @@ public class PostService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + id));
         post.setTitle(request.getTitle());
-        post.setSlug(generateSlug(request.getTitle()));
+        post.setSlug(generateUniqueSlug(request.getTitle(), post.getId()));
         post.setSummary(request.getSummary());
         post.setContent(request.getContent());
         post.setCoverImage(request.getCoverImage());
@@ -124,13 +125,34 @@ public class PostService {
         );
     }
 
-    private String generateSlug(String title) {
-        String normalized = Normalizer.normalize(title, Normalizer.Form.NFD)
+    private String generateUniqueSlug(String title, Long excludeId) {
+        String turkishReplaced = title
+                .replace('ı', 'i').replace('İ', 'i')
+                .replace('ğ', 'g').replace('Ğ', 'g')
+                .replace('ü', 'u').replace('Ü', 'u')
+                .replace('ş', 's').replace('Ş', 's')
+                .replace('ö', 'o').replace('Ö', 'o')
+                .replace('ç', 'c').replace('Ç', 'c');
+        String normalized = Normalizer.normalize(turkishReplaced, Normalizer.Form.NFD)
                 .replaceAll("[^\\p{ASCII}]", "");
-        return normalized
+        String baseSlug = normalized
                 .toLowerCase()
                 .trim()
                 .replaceAll("[^a-z0-9\\s-]", "")
                 .replaceAll("\\s+", "-");
+
+        String slug = baseSlug;
+        int counter = 2;
+        while (isSlugTaken(slug, excludeId)) {
+            slug = baseSlug + "-" + counter++;
+        }
+        return slug;
+    }
+
+    private boolean isSlugTaken(String slug, Long excludeId) {
+        if (excludeId == null) {
+            return postRepository.existsBySlug(slug);
+        }
+        return postRepository.existsBySlugAndIdNot(slug, excludeId);
     }
 }
