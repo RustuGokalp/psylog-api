@@ -1,10 +1,13 @@
 package com.gokalp.psylog_api.service;
 
 import com.gokalp.psylog_api.dto.request.PostRequest;
+import com.gokalp.psylog_api.dto.response.CommentPublicResponse;
 import com.gokalp.psylog_api.dto.response.PostDetailResponse;
 import com.gokalp.psylog_api.dto.response.PostSummaryResponse;
+import com.gokalp.psylog_api.entity.CommentStatus;
 import com.gokalp.psylog_api.entity.Post;
 import com.gokalp.psylog_api.exception.ResourceNotFoundException;
+import com.gokalp.psylog_api.repository.CommentRepository;
 import com.gokalp.psylog_api.repository.PostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class PostService {
@@ -21,9 +23,11 @@ public class PostService {
     private static final Logger log = LoggerFactory.getLogger(PostService.class);
 
     private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
 
-    public PostService(PostRepository postRepository) {
+    public PostService(PostRepository postRepository, CommentRepository commentRepository) {
         this.postRepository = postRepository;
+        this.commentRepository = commentRepository;
     }
 
     // Public
@@ -40,7 +44,12 @@ public class PostService {
     public PostDetailResponse getPublishedPostBySlug(String slug) {
         Post post = postRepository.findBySlugAndPublishedTrue(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + slug));
-        return toDetail(post);
+        List<CommentPublicResponse> comments = commentRepository
+                .findByPostAndStatusOrderByCreatedAtAsc(post, CommentStatus.APPROVED)
+                .stream()
+                .map(c -> new CommentPublicResponse(c.getId(), c.getAuthor(), c.getContent(), c.getCreatedAt()))
+                .toList();
+        return toDetail(post, comments);
     }
 
     // Admin
@@ -66,7 +75,7 @@ public class PostService {
         post.setPublishAt(request.getPublishAt());
         Post saved = postRepository.save(post);
         log.info("Post created: [id={}] {}", saved.getId(), saved.getTitle());
-        return toDetail(saved);
+        return toDetail(saved, List.of());
     }
 
     @Transactional
@@ -83,7 +92,7 @@ public class PostService {
         post.setPublishAt(request.getPublishAt());
         Post saved = postRepository.save(post);
         log.info("Post updated: [id={}] {}", saved.getId(), saved.getTitle());
-        return toDetail(saved);
+        return toDetail(saved, List.of());
     }
 
     @Transactional
@@ -110,7 +119,7 @@ public class PostService {
         );
     }
 
-    private PostDetailResponse toDetail(Post post) {
+    private PostDetailResponse toDetail(Post post, List<CommentPublicResponse> comments) {
         return new PostDetailResponse(
                 post.getId(),
                 post.getTitle(),
@@ -121,7 +130,8 @@ public class PostService {
                 post.getTags(),
                 post.isPublished(),
                 post.getCreatedAt(),
-                post.getUpdatedAt()
+                post.getUpdatedAt(),
+                comments
         );
     }
 
