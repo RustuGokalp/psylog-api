@@ -3,6 +3,7 @@ package com.gokalp.psylog_api.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "contact_messages")
@@ -29,7 +30,7 @@ public class ContactMessage {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        createdAt = LocalDateTime.now(ZoneId.of("Europe/Istanbul"));
     }
 
     public ContactMessage() {}
