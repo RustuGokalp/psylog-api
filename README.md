@@ -21,7 +21,12 @@ Spring Boot backend for a clinical psychologist portfolio and article publishing
 ## Getting Started
 
 1. Create a PostgreSQL database named `psylog`
-2. Update `application.properties` with your DB credentials
+2. Copy the example config and fill in your values:
+
+```bash
+cp src/main/resources/application.properties.example src/main/resources/application.properties
+```
+
 3. Run the application:
 
 ```bash

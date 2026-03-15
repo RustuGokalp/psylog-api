@@ -1,0 +1,21 @@
+spring.application.name=psylog-api
+
+# Database
+spring.datasource.url=jdbc:postgresql://localhost:5432/psylog
+spring.datasource.username=YOUR_DB_USERNAME
+spring.datasource.password=YOUR_DB_PASSWORD
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# JWT
+jwt.secret=YOUR_JWT_SECRET
+jwt.expiration=86400000
+
+# Admin seed
+admin.email=YOUR_ADMIN_EMAIL
+admin.password=YOUR_ADMIN_PASSWORD
