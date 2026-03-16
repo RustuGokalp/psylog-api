@@ -19,8 +19,10 @@ public class PostController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PostSummaryResponse>> getPublishedPosts() {
-        return ResponseEntity.ok(postService.getPublishedPosts());
+    public ResponseEntity<List<PostSummaryResponse>> getPublishedPosts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String tag) {
+        return ResponseEntity.ok(postService.searchPublishedPosts(keyword, tag));
     }
 
     @GetMapping("/{slug}")

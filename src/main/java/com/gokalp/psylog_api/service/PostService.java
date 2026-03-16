@@ -33,11 +33,22 @@ public class PostService {
     // Public
 
     @Transactional(readOnly = true)
-    public List<PostSummaryResponse> getPublishedPosts() {
-        return postRepository.findByPublishedTrueOrderByCreatedAtDesc()
-                .stream()
-                .map(this::toSummary)
-                .toList();
+    public List<PostSummaryResponse> searchPublishedPosts(String keyword, String tag) {
+        String k = (keyword != null && keyword.isBlank()) ? null : keyword;
+        String t = (tag != null && tag.isBlank()) ? null : tag;
+
+        List<Post> posts;
+        if (k != null && t != null) {
+            posts = postRepository.findPublishedByKeywordAndTag(k, t);
+        } else if (k != null) {
+            posts = postRepository.findPublishedByKeyword(k);
+        } else if (t != null) {
+            posts = postRepository.findPublishedByTag(t);
+        } else {
+            posts = postRepository.findByPublishedTrueOrderByCreatedAtDesc();
+        }
+
+        return posts.stream().map(this::toSummary).toList();
     }
 
     @Transactional(readOnly = true)
