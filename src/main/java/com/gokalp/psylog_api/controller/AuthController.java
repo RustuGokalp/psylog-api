@@ -21,4 +21,11 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    @GetMapping("/validate")
+    public ResponseEntity<ValidateResponse> validate() {
+        return ResponseEntity.ok(new ValidateResponse(true));
+    }
+
+    private record ValidateResponse(boolean isValid) {}
 }

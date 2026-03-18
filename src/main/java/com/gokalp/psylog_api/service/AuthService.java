@@ -52,6 +52,6 @@ public class AuthService {
                 user.getRole().name()
         );
 
-        return new AuthResponse(token, 86400000L, userInfo);
+        return new AuthResponse(token, jwtUtil.getExpiration(), userInfo);
     }
 }
