@@ -5,6 +5,7 @@ import com.gokalp.psylog_api.entity.User;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,9 +55,9 @@ class JwtAuthFilterTest {
         SecurityContextHolder.clearContext();
     }
 
-    // TC-01: no Authorization header → chain continues, no authentication set
+    // TC-01: no cookie → chain continues, no authentication set
     @Test
-    void noAuthorizationHeader_continuesChainUnauthenticated() throws Exception {
+    void noCookie_continuesChainUnauthenticated() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -66,11 +67,11 @@ class JwtAuthFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
-    // TC-02: non-Bearer Authorization header → chain continues, no authentication set
+    // TC-02: cookie with wrong name → chain continues, no authentication set
     @Test
-    void nonBearerAuthorizationHeader_continuesChainUnauthenticated() throws Exception {
+    void cookieWithWrongName_continuesChainUnauthenticated() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Basic dXNlcjpwYXNz");
+        request.setCookies(new Cookie("session", "some-value"));
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, filterChain);
@@ -79,14 +80,14 @@ class JwtAuthFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
-    // TC-03: valid token → authentication set in SecurityContext with correct username and role
+    // TC-03: valid token in cookie → authentication set in SecurityContext with correct username and role
     @Test
-    void validToken_setsAuthenticationWithCorrectUsernameAndRole() throws Exception {
+    void validTokenInCookie_setsAuthenticationWithCorrectUsernameAndRole() throws Exception {
         User user = new User("admin@test.com", "pass", Role.ADMIN);
         String token = jwtUtil.generateToken(user);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer " + token);
+        request.setCookies(new Cookie("token", token));
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, filterChain);
@@ -99,9 +100,9 @@ class JwtAuthFilterTest {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
     }
 
-    // TC-04: expired token → JwtException caught by filter, chain continues, no authentication set
+    // TC-04: expired token in cookie → JwtException caught by filter, chain continues, no authentication set
     @Test
-    void expiredToken_continuesChainUnauthenticated() throws Exception {
+    void expiredTokenInCookie_continuesChainUnauthenticated() throws Exception {
         SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
         String expiredToken = Jwts.builder()
                 .subject("admin@test.com")
@@ -112,7 +113,7 @@ class JwtAuthFilterTest {
                 .compact();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer " + expiredToken);
+        request.setCookies(new Cookie("token", expiredToken));
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, filterChain);
@@ -121,11 +122,11 @@ class JwtAuthFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
-    // TC-05: malformed token → JwtException caught, chain continues, no authentication set
+    // TC-05: malformed token in cookie → JwtException caught, chain continues, no authentication set
     @Test
-    void malformedToken_continuesChainUnauthenticated() throws Exception {
+    void malformedTokenInCookie_continuesChainUnauthenticated() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer this.is.not.valid");
+        request.setCookies(new Cookie("token", "this.is.not.valid"));
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, filterChain);
@@ -134,15 +135,15 @@ class JwtAuthFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
-    // TC-06: tampered signature → JwtException caught, chain continues, no authentication set
+    // TC-06: tampered signature in cookie → JwtException caught, chain continues, no authentication set
     @Test
-    void tamperedToken_continuesChainUnauthenticated() throws Exception {
+    void tamperedTokenInCookie_continuesChainUnauthenticated() throws Exception {
         User user = new User("admin@test.com", "pass", Role.ADMIN);
         String valid = jwtUtil.generateToken(user);
         String tampered = valid.substring(0, valid.length() - 6) + "XXXXXX";
 
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer " + tampered);
+        request.setCookies(new Cookie("token", tampered));
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, filterChain);
@@ -151,9 +152,9 @@ class JwtAuthFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
-    // TC-07: token without role claim → null-guard in filter prevents authentication from being set
+    // TC-07: token without role claim in cookie → null-guard in filter prevents authentication from being set
     @Test
-    void tokenWithoutRoleClaim_continuesChainUnauthenticated() throws Exception {
+    void tokenWithoutRoleClaimInCookie_continuesChainUnauthenticated() throws Exception {
         SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
         String tokenNoRole = Jwts.builder()
                 .subject("admin@test.com")
@@ -163,7 +164,7 @@ class JwtAuthFilterTest {
                 .compact();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer " + tokenNoRole);
+        request.setCookies(new Cookie("token", tokenNoRole));
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, filterChain);

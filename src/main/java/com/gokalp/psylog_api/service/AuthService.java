@@ -30,7 +30,9 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public record LoginResult(String token, long expiresIn, AuthResponse.UserInfo userInfo) {}
+
+    public LoginResult login(LoginRequest request) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
@@ -52,6 +54,6 @@ public class AuthService {
                 user.getRole().name()
         );
 
-        return new AuthResponse(token, jwtUtil.getExpiration(), userInfo);
+        return new LoginResult(token, jwtUtil.getExpiration(), userInfo);
     }
 }
