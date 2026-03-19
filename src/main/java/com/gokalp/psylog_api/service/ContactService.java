@@ -22,10 +22,11 @@ public class ContactService {
     @Transactional
     public void save(ContactRequest request) {
         ContactMessage message = new ContactMessage();
-        message.setName(request.getName());
+        message.setFullName(request.getFullName());
         message.setEmail(request.getEmail());
         message.setSubject(request.getSubject());
         message.setMessage(request.getMessage());
+        message.setMobilePhone(request.getMobilePhone());
         contactMessageRepository.save(message);
         log.info("Contact message received from: {}", request.getEmail());
     }
