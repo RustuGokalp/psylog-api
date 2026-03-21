@@ -1,7 +1,6 @@
 package com.gokalp.psylog_api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.gokalp.psylog_api.dto.request.LoginRequest;
 import com.gokalp.psylog_api.dto.response.AuthResponse;
 import com.gokalp.psylog_api.entity.Role;
@@ -10,6 +9,7 @@ import com.gokalp.psylog_api.security.JwtUtil;
 import com.gokalp.psylog_api.service.AuthService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,8 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // TC-01 through TC-09: Full-stack HTTP integration tests
 // Uses H2 in-memory DB (src/test/resources/application.properties), full Spring Security stack
@@ -64,15 +63,15 @@ class AuthControllerTest {
 
     // ─── Login ──────────────────────────────────────────────────────────────
 
-    // TC-01: valid credentials → 200 with correct response shape
+    // TC-01: valid credentials → 200, Set-Cookie header present, response body contains user info
     @Test
-    void login_withValidCredentials_returns200WithCorrectShape() throws Exception {
+    void login_withValidCredentials_returns200WithCookieAndUserInfo() throws Exception {
         User user = new User("admin@test.com", "pass", Role.ADMIN);
         String token = jwtUtil.generateToken(user);
-        AuthResponse mockResponse = new AuthResponse(
+        AuthService.LoginResult result = new AuthService.LoginResult(
                 token, 3_600_000L,
                 new AuthResponse.UserInfo(1L, "admin@test.com", "ADMIN"));
-        when(authService.login(any())).thenReturn(mockResponse);
+        when(authService.login(any())).thenReturn(result);
 
         LoginRequest request = new LoginRequest();
         request.setEmail("admin@test.com");
@@ -82,11 +81,10 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").isNotEmpty())
-                .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.expiresIn").value(3_600_000))
-                .andExpect(jsonPath("$.user.email").value("admin@test.com"))
-                .andExpect(jsonPath("$.user.role").value("ADMIN"));
+                .andExpect(header().exists("Set-Cookie"))
+                .andExpect(cookie().httpOnly("token", true))
+                .andExpect(jsonPath("$.email").value("admin@test.com"))
+                .andExpect(jsonPath("$.role").value("ADMIN"));
     }
 
     // TC-02: invalid credentials → service throws BadCredentialsException → GlobalExceptionHandler returns 401
@@ -130,28 +128,28 @@ class AuthControllerTest {
 
     // ─── Validate ───────────────────────────────────────────────────────────
 
-    // TC-05: valid token → JwtAuthFilter sets auth → 200 with { isValid: true }
+    // TC-05: valid token in cookie → JwtAuthFilter sets auth → 200 with { isValid: true }
     @Test
-    void validate_withValidToken_returns200WithIsValidTrue() throws Exception {
+    void validate_withValidTokenCookie_returns200WithIsValidTrue() throws Exception {
         User user = new User("admin@test.com", "pass", Role.ADMIN);
         String token = jwtUtil.generateToken(user);
 
         mockMvc.perform(get("/api/auth/validate")
-                        .header("Authorization", "Bearer " + token))
+                        .cookie(new Cookie("token", token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isValid").value(true));
     }
 
-    // TC-06: no Authorization header → no authentication set → Spring Security returns 401
+    // TC-06: no cookie → no authentication set → Spring Security returns 401
     @Test
-    void validate_withNoToken_returns401() throws Exception {
+    void validate_withNoCookie_returns401() throws Exception {
         mockMvc.perform(get("/api/auth/validate"))
                 .andExpect(status().isUnauthorized());
     }
 
-    // TC-07: expired token → JwtAuthFilter catches JwtException → no auth set → 401
+    // TC-07: expired token in cookie → JwtAuthFilter catches JwtException → no auth set → 401
     @Test
-    void validate_withExpiredToken_returns401() throws Exception {
+    void validate_withExpiredTokenCookie_returns401() throws Exception {
         SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
         String expiredToken = Jwts.builder()
                 .subject("admin@test.com")
@@ -162,27 +160,27 @@ class AuthControllerTest {
                 .compact();
 
         mockMvc.perform(get("/api/auth/validate")
-                        .header("Authorization", "Bearer " + expiredToken))
+                        .cookie(new Cookie("token", expiredToken)))
                 .andExpect(status().isUnauthorized());
     }
 
-    // TC-08: malformed token string → JwtAuthFilter catches JwtException → 401
+    // TC-08: malformed token in cookie → JwtAuthFilter catches JwtException → 401
     @Test
-    void validate_withMalformedToken_returns401() throws Exception {
+    void validate_withMalformedTokenCookie_returns401() throws Exception {
         mockMvc.perform(get("/api/auth/validate")
-                        .header("Authorization", "Bearer not.a.valid.jwt"))
+                        .cookie(new Cookie("token", "not.a.valid.jwt")))
                 .andExpect(status().isUnauthorized());
     }
 
-    // TC-09: tampered signature → JwtAuthFilter catches JwtException → 401
+    // TC-09: tampered signature in cookie → JwtAuthFilter catches JwtException → 401
     @Test
-    void validate_withTamperedToken_returns401() throws Exception {
+    void validate_withTamperedTokenCookie_returns401() throws Exception {
         User user = new User("admin@test.com", "pass", Role.ADMIN);
         String valid = jwtUtil.generateToken(user);
         String tampered = valid.substring(0, valid.length() - 6) + "XXXXXX";
 
         mockMvc.perform(get("/api/auth/validate")
-                        .header("Authorization", "Bearer " + tampered))
+                        .cookie(new Cookie("token", tampered)))
                 .andExpect(status().isUnauthorized());
     }
 }

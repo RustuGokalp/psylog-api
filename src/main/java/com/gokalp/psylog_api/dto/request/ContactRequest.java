@@ -1,5 +1,6 @@
 package com.gokalp.psylog_api.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -24,6 +25,7 @@ public class ContactRequest {
     private String message;
 
     @Pattern(regexp = "^(\\(\\d+\\)(\\s\\d+)+|\\d{7,15}|\\d+(-\\d+)+)$", message = "Invalid phone number format")
+    @Schema(example = "532-111-22-33")
     private String mobilePhone;
 
     public String getFullName() { return fullName; }
