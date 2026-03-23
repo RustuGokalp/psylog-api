@@ -11,6 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class AboutService {
 
@@ -35,9 +38,14 @@ public class AboutService {
         if (aboutRepository.findFirstBy().isPresent()) {
             throw new AlreadyExistsException("About record already exists");
         }
+        if (request.getMessage() == null || request.getMessage().isBlank()) {
+            throw new IllegalArgumentException("Message is required");
+        }
         About about = new About();
         about.setMessage(request.getMessage());
         about.setProfileImage(normalizeUrl(request.getProfileImage()));
+        about.setEducation(normalizeList(request.getEducation()));
+        about.setWorkingAreas(normalizeList(request.getWorkingAreas()));
         About saved = aboutRepository.save(about);
         log.info("About record created: [id={}]", saved.getId());
         return toResponse(saved);
@@ -47,8 +55,18 @@ public class AboutService {
     public AboutResponse updateAbout(AboutRequest request) {
         About about = aboutRepository.findFirstBy()
                 .orElseThrow(() -> new ResourceNotFoundException("About record not found"));
-        about.setMessage(request.getMessage());
-        about.setProfileImage(normalizeUrl(request.getProfileImage()));
+        if (request.getMessage() != null) {
+            about.setMessage(request.getMessage());
+        }
+        if (request.getProfileImage() != null) {
+            about.setProfileImage(normalizeUrl(request.getProfileImage()));
+        }
+        if (request.getEducation() != null) {
+            about.setEducation(request.getEducation());
+        }
+        if (request.getWorkingAreas() != null) {
+            about.setWorkingAreas(request.getWorkingAreas());
+        }
         About saved = aboutRepository.save(about);
         log.info("About record updated: [id={}]", saved.getId());
         return toResponse(saved);
@@ -66,11 +84,17 @@ public class AboutService {
         return (url != null && !url.isBlank()) ? url : null;
     }
 
+    private List<String> normalizeList(List<String> list) {
+        return (list != null) ? list : new ArrayList<>();
+    }
+
     private AboutResponse toResponse(About about) {
         return new AboutResponse(
                 about.getId(),
                 about.getMessage(),
                 about.getProfileImage(),
+                about.getEducation(),
+                about.getWorkingAreas(),
                 about.getCreatedAt(),
                 about.getUpdatedAt()
         );
