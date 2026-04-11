@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// TC-01 through TC-13: Full-stack HTTP integration tests for Specialization endpoints
+// TC-01 through TC-16: Full-stack HTTP integration tests for Specialization endpoints
 // Uses H2 in-memory DB (src/test/resources/application.properties), full Spring Security stack
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 class SpecializationControllerTest {
@@ -64,14 +64,18 @@ class SpecializationControllerTest {
 
     private SpecializationResponse sampleResponse(Long id, String title, Integer displayOrder) {
         return new SpecializationResponse(
-                id, title, "Açıklama", "https://img.com/" + id + ".jpg",
-                displayOrder, LocalDateTime.of(2026, 3, 22, 10, 0), LocalDateTime.of(2026, 3, 22, 10, 0));
+                id, title, "slug-" + id, "<p>Özet</p>", "<p>İçerik</p>",
+                "https://img.com/" + id + ".jpg",
+                displayOrder,
+                LocalDateTime.of(2026, 3, 22, 10, 0),
+                LocalDateTime.of(2026, 3, 22, 10, 0));
     }
 
     private SpecializationRequest validRequest() {
         SpecializationRequest req = new SpecializationRequest();
         req.setTitle("Anksiyete Bozuklukları");
-        req.setDescription("Kapsamlı bir açıklama metni");
+        req.setSummary("<p>Kapsamlı bir özet metni</p>");
+        req.setContent("<p>Detaylı içerik metni</p>");
         req.setImage("https://img.com/1.jpg");
         req.setDisplayOrder(1);
         return req;
@@ -106,9 +110,33 @@ class SpecializationControllerTest {
                 .andExpect(jsonPath("$[1].id").value(2));
     }
 
+    // ─── GET /api/specializations/{slug} (public) ───────────────────────────
+
+    // TC-03: existing slug → 200
+    @Test
+    void getBySlug_existingSlug_returns200() throws Exception {
+        SpecializationResponse res = sampleResponse(1L, "Anksiyete", 1);
+        when(specializationService.getBySlug("anksiyete-bozukluklari")).thenReturn(res);
+
+        mockMvc.perform(get("/api/specializations/anksiyete-bozukluklari"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.title").value("Anksiyete"));
+    }
+
+    // TC-04: non-existent slug → 404
+    @Test
+    void getBySlug_nonExistentSlug_returns404() throws Exception {
+        when(specializationService.getBySlug("yok"))
+                .thenThrow(new ResourceNotFoundException("Specialization not found: yok"));
+
+        mockMvc.perform(get("/api/specializations/yok"))
+                .andExpect(status().isNotFound());
+    }
+
     // ─── GET /api/admin/specializations ────────────────────────────────────
 
-    // TC-03: admin GET with valid token → 200
+    // TC-05: admin GET with valid token → 200
     @Test
     void adminGetAll_withValidToken_returns200() throws Exception {
         when(specializationService.getAll()).thenReturn(List.of());
@@ -118,7 +146,7 @@ class SpecializationControllerTest {
                 .andExpect(status().isOk());
     }
 
-    // TC-04: admin GET without token → 401
+    // TC-06: admin GET without token → 401
     @Test
     void adminGetAll_withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/api/admin/specializations"))
@@ -127,7 +155,7 @@ class SpecializationControllerTest {
 
     // ─── POST /api/admin/specializations ────────────────────────────────────
 
-    // TC-05: valid request with token → 200, response body contains all fields
+    // TC-07: valid request with token → 200, response body contains all fields
     @Test
     void adminCreate_withValidRequest_returns200() throws Exception {
         SpecializationRequest req = validRequest();
@@ -144,7 +172,7 @@ class SpecializationControllerTest {
                 .andExpect(jsonPath("$.displayOrder").value(1));
     }
 
-    // TC-06: POST without token → 401
+    // TC-08: POST without token → 401
     @Test
     void adminCreate_withoutToken_returns401() throws Exception {
         mockMvc.perform(post("/api/admin/specializations")
@@ -153,7 +181,7 @@ class SpecializationControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    // TC-07: POST with blank title → @NotBlank fails → 400
+    // TC-09: POST with blank title → @NotBlank fails → 400
     @Test
     void adminCreate_withBlankTitle_returns400() throws Exception {
         SpecializationRequest req = validRequest();
@@ -166,11 +194,11 @@ class SpecializationControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // TC-08: POST with missing description → @NotBlank fails → 400
+    // TC-10: POST with missing summary → @NotBlank fails → 400
     @Test
-    void adminCreate_withMissingDescription_returns400() throws Exception {
+    void adminCreate_withMissingSummary_returns400() throws Exception {
         SpecializationRequest req = validRequest();
-        req.setDescription(null);
+        req.setSummary(null);
 
         mockMvc.perform(post("/api/admin/specializations")
                         .cookie(new Cookie("token", adminToken()))
@@ -179,7 +207,20 @@ class SpecializationControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // TC-09: POST with invalid image URL → @URL fails → 400
+    // TC-11: POST with missing content → @NotBlank fails → 400
+    @Test
+    void adminCreate_withMissingContent_returns400() throws Exception {
+        SpecializationRequest req = validRequest();
+        req.setContent(null);
+
+        mockMvc.perform(post("/api/admin/specializations")
+                        .cookie(new Cookie("token", adminToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // TC-12: POST with invalid image URL → @URL fails → 400
     @Test
     void adminCreate_withInvalidImageUrl_returns400() throws Exception {
         SpecializationRequest req = validRequest();
@@ -194,7 +235,7 @@ class SpecializationControllerTest {
 
     // ─── PUT /api/admin/specializations/{id} ────────────────────────────────
 
-    // TC-10: valid request with token → 200
+    // TC-13: valid request with token → 200
     @Test
     void adminUpdate_withValidRequest_returns200() throws Exception {
         SpecializationResponse res = sampleResponse(1L, "Updated", 2);
@@ -208,7 +249,7 @@ class SpecializationControllerTest {
                 .andExpect(jsonPath("$.id").value(1));
     }
 
-    // TC-11: PUT with non-existent id → service throws ResourceNotFoundException → 404
+    // TC-14: PUT with non-existent id → service throws ResourceNotFoundException → 404
     @Test
     void adminUpdate_nonExistentId_returns404() throws Exception {
         when(specializationService.update(eq(99L), any()))
@@ -221,7 +262,7 @@ class SpecializationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // TC-12: PUT without token → 401
+    // TC-15: PUT without token → 401
     @Test
     void adminUpdate_withoutToken_returns401() throws Exception {
         mockMvc.perform(put("/api/admin/specializations/1")
@@ -232,7 +273,7 @@ class SpecializationControllerTest {
 
     // ─── DELETE /api/admin/specializations/{id} ─────────────────────────────
 
-    // TC-13: valid token → 200, success response body
+    // TC-16: valid token → 200, success response body
     @Test
     void adminDelete_withValidToken_returns200() throws Exception {
         mockMvc.perform(delete("/api/admin/specializations/1")
@@ -242,7 +283,7 @@ class SpecializationControllerTest {
                 .andExpect(jsonPath("$.message").value("Specialization deleted"));
     }
 
-    // TC-14: DELETE non-existent id → service throws ResourceNotFoundException → 404
+    // TC-17: DELETE non-existent id → service throws ResourceNotFoundException → 404
     @Test
     void adminDelete_nonExistentId_returns404() throws Exception {
         doThrow(new ResourceNotFoundException("Specialization not found with id: 99"))
@@ -253,7 +294,7 @@ class SpecializationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // TC-15: DELETE without token → 401
+    // TC-18: DELETE without token → 401
     @Test
     void adminDelete_withoutToken_returns401() throws Exception {
         mockMvc.perform(delete("/api/admin/specializations/1"))

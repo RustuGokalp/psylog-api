@@ -84,6 +84,7 @@ public class PostService {
         post.setTags(request.getTags() != null ? request.getTags() : List.of());
         post.setPublished(request.getPublished());
         post.setPublishAt(request.getPublishAt());
+        post.setReadingTime(request.getReadingTime());
         Post saved = postRepository.save(post);
         log.info("Post created: [id={}] {}", saved.getId(), saved.getTitle());
         return toDetail(saved, List.of());
@@ -101,6 +102,7 @@ public class PostService {
         post.setTags(request.getTags() != null ? request.getTags() : List.of());
         post.setPublished(request.getPublished());
         post.setPublishAt(request.getPublishAt());
+        post.setReadingTime(request.getReadingTime());
         Post saved = postRepository.save(post);
         log.info("Post updated: [id={}] {}", saved.getId(), saved.getTitle());
         return toDetail(saved, List.of());
@@ -126,7 +128,8 @@ public class PostService {
                 post.getCoverImage(),
                 post.getTags(),
                 post.isPublished(),
-                post.getCreatedAt()
+                post.getCreatedAt(),
+                post.getReadingTime()
         );
     }
 
@@ -142,7 +145,8 @@ public class PostService {
                 post.isPublished(),
                 post.getCreatedAt(),
                 post.getUpdatedAt(),
-                comments
+                comments,
+                post.getReadingTime()
         );
     }
 

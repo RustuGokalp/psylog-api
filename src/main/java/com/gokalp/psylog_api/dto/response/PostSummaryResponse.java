@@ -13,10 +13,11 @@ public class PostSummaryResponse {
     private List<String> tags;
     private boolean published;
     private LocalDateTime createdAt;
+    private Integer readingTime;
 
     public PostSummaryResponse(Long id, String title, String slug, String summary,
                                 String coverImage, List<String> tags, boolean published,
-                                LocalDateTime createdAt) {
+                                LocalDateTime createdAt, Integer readingTime) {
         this.id = id;
         this.title = title;
         this.slug = slug;
@@ -25,6 +26,7 @@ public class PostSummaryResponse {
         this.tags = tags;
         this.published = published;
         this.createdAt = createdAt;
+        this.readingTime = readingTime;
     }
 
     public Long getId() { return id; }
@@ -35,4 +37,5 @@ public class PostSummaryResponse {
     public List<String> getTags() { return tags; }
     public boolean isPublished() { return published; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public Integer getReadingTime() { return readingTime; }
 }

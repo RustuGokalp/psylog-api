@@ -26,6 +26,8 @@ public class PostRequest {
 
     private LocalDateTime publishAt;
 
+    private Integer readingTime;
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getSummary() { return summary; }
@@ -40,4 +42,6 @@ public class PostRequest {
     public void setPublished(Boolean published) { this.published = published; }
     public LocalDateTime getPublishAt() { return publishAt; }
     public void setPublishAt(LocalDateTime publishAt) { this.publishAt = publishAt; }
+    public Integer getReadingTime() { return readingTime; }
+    public void setReadingTime(Integer readingTime) { this.readingTime = readingTime; }
 }

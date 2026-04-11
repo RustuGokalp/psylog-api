@@ -44,6 +44,8 @@ public class Post {
 
     private LocalDateTime publishAt;
 
+    private Integer readingTime;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now(ZoneId.of("Europe/Istanbul"));
@@ -76,4 +78,6 @@ public class Post {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public LocalDateTime getPublishAt() { return publishAt; }
     public void setPublishAt(LocalDateTime publishAt) { this.publishAt = publishAt; }
+    public Integer getReadingTime() { return readingTime; }
+    public void setReadingTime(Integer readingTime) { this.readingTime = readingTime; }
 }

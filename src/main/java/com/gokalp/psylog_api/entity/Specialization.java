@@ -16,8 +16,14 @@ public class Specialization {
     @Column(nullable = false, length = 100)
     private String title;
 
+    @Column(nullable = false, unique = true)
+    private String slug;
+
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String description;
+    private String summary;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String content;
 
     private String image;
 
@@ -44,8 +50,12 @@ public class Specialization {
     public Long getId() { return id; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getSlug() { return slug; }
+    public void setSlug(String slug) { this.slug = slug; }
+    public String getSummary() { return summary; }
+    public void setSummary(String summary) { this.summary = summary; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
     public String getImage() { return image; }
     public void setImage(String image) { this.image = image; }
     public Integer getDisplayOrder() { return displayOrder; }

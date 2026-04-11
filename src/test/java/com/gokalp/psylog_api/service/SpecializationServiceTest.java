@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 // TC-01 through TC-09: Unit tests for SpecializationService — verifies business logic in isolation
@@ -37,11 +38,13 @@ class SpecializationServiceTest {
 
     // ─── Helpers ────────────────────────────────────────────────────────────
 
-    private Specialization buildEntity(Long id, String title, String description, String image, Integer displayOrder) {
+    private Specialization buildEntity(Long id, String title, String slug, String summary, String content, String image, Integer displayOrder) {
         Specialization s = new Specialization();
         ReflectionTestUtils.setField(s, "id", id);
         s.setTitle(title);
-        s.setDescription(description);
+        s.setSlug(slug);
+        s.setSummary(summary);
+        s.setContent(content);
         s.setImage(image);
         s.setDisplayOrder(displayOrder);
         ReflectionTestUtils.setField(s, "createdAt", LocalDateTime.of(2026, 3, 22, 10, 0));
@@ -49,10 +52,11 @@ class SpecializationServiceTest {
         return s;
     }
 
-    private SpecializationRequest buildRequest(String title, String description, String image, Integer displayOrder) {
+    private SpecializationRequest buildRequest(String title, String summary, String content, String image, Integer displayOrder) {
         SpecializationRequest req = new SpecializationRequest();
         req.setTitle(title);
-        req.setDescription(description);
+        req.setSummary(summary);
+        req.setContent(content);
         req.setImage(image);
         req.setDisplayOrder(displayOrder);
         return req;
@@ -63,8 +67,8 @@ class SpecializationServiceTest {
     // TC-01: repo returns entities → service maps all fields to response list
     @Test
     void getAll_returnsAllSpecializationsMappedToResponse() {
-        Specialization s1 = buildEntity(1L, "Anksiyete", "Açıklama 1", "https://img.com/1.jpg", 1);
-        Specialization s2 = buildEntity(2L, "Depresyon", "Açıklama 2", null, 2);
+        Specialization s1 = buildEntity(1L, "Anksiyete", "anksiyete", "Özet 1", "İçerik 1", "https://img.com/1.jpg", 1);
+        Specialization s2 = buildEntity(2L, "Depresyon", "depresyon", "Özet 2", "İçerik 2", null, 2);
         when(specializationRepository.findAllOrdered()).thenReturn(List.of(s1, s2));
 
         List<SpecializationResponse> result = specializationService.getAll();
@@ -72,6 +76,7 @@ class SpecializationServiceTest {
         assertEquals(2, result.size());
         assertEquals(1L, result.get(0).id());
         assertEquals("Anksiyete", result.get(0).title());
+        assertEquals("anksiyete", result.get(0).slug());
         assertEquals("https://img.com/1.jpg", result.get(0).image());
         assertEquals(1, result.get(0).displayOrder());
         assertNull(result.get(1).image());
@@ -87,13 +92,38 @@ class SpecializationServiceTest {
         assertTrue(result.isEmpty());
     }
 
+    // ─── getBySlug ──────────────────────────────────────────────────────────
+
+    // TC-03: existing slug → returns mapped response
+    @Test
+    void getBySlug_existingSlug_returnsResponse() {
+        Specialization s = buildEntity(1L, "Anksiyete", "anksiyete", "Özet", "İçerik", null, 1);
+        when(specializationRepository.findBySlug("anksiyete")).thenReturn(Optional.of(s));
+
+        SpecializationResponse result = specializationService.getBySlug("anksiyete");
+
+        assertEquals(1L, result.id());
+        assertEquals("anksiyete", result.slug());
+        assertEquals("Özet", result.summary());
+        assertEquals("İçerik", result.content());
+    }
+
+    // TC-04: non-existent slug → ResourceNotFoundException thrown
+    @Test
+    void getBySlug_nonExistentSlug_throwsResourceNotFoundException() {
+        when(specializationRepository.findBySlug("yok")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> specializationService.getBySlug("yok"));
+    }
+
     // ─── create ─────────────────────────────────────────────────────────────
 
-    // TC-03: valid request → entity saved with all fields, response returned
+    // TC-05: valid request → entity saved with all fields, response returned
     @Test
     void create_savesEntityAndReturnsResponse() {
-        SpecializationRequest request = buildRequest("Anksiyete", "Açıklama", "https://img.com/1.jpg", 1);
-        Specialization saved = buildEntity(1L, "Anksiyete", "Açıklama", "https://img.com/1.jpg", 1);
+        SpecializationRequest request = buildRequest("Anksiyete", "Özet", "İçerik", "https://img.com/1.jpg", 1);
+        Specialization saved = buildEntity(1L, "Anksiyete", "anksiyete", "Özet", "İçerik", "https://img.com/1.jpg", 1);
+        when(specializationRepository.existsBySlug(anyString())).thenReturn(false);
         when(specializationRepository.save(any())).thenReturn(saved);
 
         SpecializationResponse result = specializationService.create(request);
@@ -101,19 +131,20 @@ class SpecializationServiceTest {
         ArgumentCaptor<Specialization> captor = ArgumentCaptor.forClass(Specialization.class);
         verify(specializationRepository).save(captor.capture());
         assertEquals("Anksiyete", captor.getValue().getTitle());
-        assertEquals("Açıklama", captor.getValue().getDescription());
+        assertEquals("Özet", captor.getValue().getSummary());
+        assertEquals("İçerik", captor.getValue().getContent());
         assertEquals("https://img.com/1.jpg", captor.getValue().getImage());
         assertEquals(1, captor.getValue().getDisplayOrder());
-
         assertEquals(1L, result.id());
         assertEquals("Anksiyete", result.title());
     }
 
-    // TC-04: image is blank → normalizeUrl stores null
+    // TC-06: image is blank → normalizeUrl stores null
     @Test
     void create_withBlankImage_storesNullImage() {
-        SpecializationRequest request = buildRequest("Title", "Desc", "   ", null);
-        Specialization saved = buildEntity(1L, "Title", "Desc", null, null);
+        SpecializationRequest request = buildRequest("Title", "Özet", "İçerik", "   ", null);
+        Specialization saved = buildEntity(1L, "Title", "title", "Özet", "İçerik", null, null);
+        when(specializationRepository.existsBySlug(anyString())).thenReturn(false);
         when(specializationRepository.save(any())).thenReturn(saved);
 
         specializationService.create(request);
@@ -123,11 +154,12 @@ class SpecializationServiceTest {
         assertNull(captor.getValue().getImage());
     }
 
-    // TC-05: displayOrder is null → saved with null displayOrder
+    // TC-07: displayOrder is null → saved with null displayOrder
     @Test
     void create_withNullDisplayOrder_savesWithNullDisplayOrder() {
-        SpecializationRequest request = buildRequest("Title", "Desc", null, null);
-        Specialization saved = buildEntity(1L, "Title", "Desc", null, null);
+        SpecializationRequest request = buildRequest("Title", "Özet", "İçerik", null, null);
+        Specialization saved = buildEntity(1L, "Title", "title", "Özet", "İçerik", null, null);
+        when(specializationRepository.existsBySlug(anyString())).thenReturn(false);
         when(specializationRepository.save(any())).thenReturn(saved);
 
         SpecializationResponse result = specializationService.create(request);
@@ -137,41 +169,43 @@ class SpecializationServiceTest {
 
     // ─── update ─────────────────────────────────────────────────────────────
 
-    // TC-06: existing id + valid request → entity fields updated, response returned
+    // TC-08: existing id + valid request → entity fields updated, response returned
     @Test
     void update_existingId_updatesAndReturnsResponse() {
-        Specialization existing = buildEntity(1L, "Old Title", "Old Desc", null, null);
-        SpecializationRequest request = buildRequest("New Title", "New Desc", "https://img.com/new.jpg", 3);
-        Specialization saved = buildEntity(1L, "New Title", "New Desc", "https://img.com/new.jpg", 3);
+        Specialization existing = buildEntity(1L, "Old Title", "old-title", "Old Özet", "Old İçerik", null, null);
+        SpecializationRequest request = buildRequest("New Title", "New Özet", "New İçerik", "https://img.com/new.jpg", 3);
+        Specialization saved = buildEntity(1L, "New Title", "new-title", "New Özet", "New İçerik", "https://img.com/new.jpg", 3);
 
         when(specializationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(specializationRepository.existsBySlugAndIdNot(anyString(), eq(1L))).thenReturn(false);
         when(specializationRepository.save(any())).thenReturn(saved);
 
         SpecializationResponse result = specializationService.update(1L, request);
 
         assertEquals("New Title", existing.getTitle());
-        assertEquals("New Desc", existing.getDescription());
+        assertEquals("New Özet", existing.getSummary());
+        assertEquals("New İçerik", existing.getContent());
         assertEquals("https://img.com/new.jpg", existing.getImage());
         assertEquals(3, existing.getDisplayOrder());
         assertEquals(1L, result.id());
     }
 
-    // TC-07: non-existent id → ResourceNotFoundException thrown
+    // TC-09: non-existent id → ResourceNotFoundException thrown
     @Test
     void update_nonExistentId_throwsResourceNotFoundException() {
         when(specializationRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
-                () -> specializationService.update(99L, buildRequest("T", "D", null, null)));
+                () -> specializationService.update(99L, buildRequest("T", "S", "C", null, null)));
         verify(specializationRepository, never()).save(any());
     }
 
     // ─── delete ─────────────────────────────────────────────────────────────
 
-    // TC-08: existing id → entity deleted
+    // TC-10: existing id → entity deleted
     @Test
     void delete_existingId_deletesEntity() {
-        Specialization existing = buildEntity(1L, "Title", "Desc", null, null);
+        Specialization existing = buildEntity(1L, "Title", "title", "Özet", "İçerik", null, null);
         when(specializationRepository.findById(1L)).thenReturn(Optional.of(existing));
 
         specializationService.delete(1L);
@@ -179,7 +213,7 @@ class SpecializationServiceTest {
         verify(specializationRepository).delete(existing);
     }
 
-    // TC-09: non-existent id → ResourceNotFoundException thrown, delete not called
+    // TC-11: non-existent id → ResourceNotFoundException thrown, delete not called
     @Test
     void delete_nonExistentId_throwsResourceNotFoundException() {
         when(specializationRepository.findById(99L)).thenReturn(Optional.empty());

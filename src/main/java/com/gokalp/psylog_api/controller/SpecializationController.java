@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,5 +29,12 @@ public class SpecializationController {
     @GetMapping
     public ResponseEntity<List<SpecializationResponse>> getAll() {
         return ResponseEntity.ok(specializationService.getAll());
+    }
+
+    @Operation(summary = "Get specialization by slug", description = "Returns a single specialization by slug. Returns 404 if not found.")
+    @SecurityRequirements
+    @GetMapping("/{slug}")
+    public ResponseEntity<SpecializationResponse> getBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(specializationService.getBySlug(slug));
     }
 }

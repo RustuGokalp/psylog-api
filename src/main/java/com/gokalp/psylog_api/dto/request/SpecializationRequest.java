@@ -10,8 +10,11 @@ public class SpecializationRequest {
     @Size(max = 100, message = "Title must be at most 100 characters")
     private String title;
 
-    @NotBlank(message = "Description is required")
-    private String description;
+    @NotBlank(message = "Summary is required")
+    private String summary;
+
+    @NotBlank(message = "Content is required")
+    private String content;
 
     @URL(message = "Image must be a valid URL")
     private String image;
@@ -20,8 +23,10 @@ public class SpecializationRequest {
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getSummary() { return summary; }
+    public void setSummary(String summary) { this.summary = summary; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
     public String getImage() { return image; }
     public void setImage(String image) { this.image = image; }
     public Integer getDisplayOrder() { return displayOrder; }

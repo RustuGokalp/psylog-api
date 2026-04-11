@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.util.List;
 
 @Service
@@ -31,15 +32,24 @@ public class SpecializationService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public SpecializationResponse getBySlug(String slug) {
+        Specialization specialization = specializationRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Specialization not found: " + slug));
+        return toResponse(specialization);
+    }
+
     @Transactional
     public SpecializationResponse create(SpecializationRequest request) {
         Specialization specialization = new Specialization();
         specialization.setTitle(request.getTitle());
-        specialization.setDescription(request.getDescription());
+        specialization.setSlug(generateUniqueSlug(request.getTitle(), null));
+        specialization.setSummary(request.getSummary());
+        specialization.setContent(request.getContent());
         specialization.setImage(normalizeUrl(request.getImage()));
         specialization.setDisplayOrder(request.getDisplayOrder());
         Specialization saved = specializationRepository.save(specialization);
-        log.info("Specialization created: [id={}]", saved.getId());
+        log.info("Specialization created: [id={}] {}", saved.getId(), saved.getTitle());
         return toResponse(saved);
     }
 
@@ -48,11 +58,13 @@ public class SpecializationService {
         Specialization specialization = specializationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Specialization not found with id: " + id));
         specialization.setTitle(request.getTitle());
-        specialization.setDescription(request.getDescription());
+        specialization.setSlug(generateUniqueSlug(request.getTitle(), id));
+        specialization.setSummary(request.getSummary());
+        specialization.setContent(request.getContent());
         specialization.setImage(normalizeUrl(request.getImage()));
         specialization.setDisplayOrder(request.getDisplayOrder());
         Specialization saved = specializationRepository.save(specialization);
-        log.info("Specialization updated: [id={}]", saved.getId());
+        log.info("Specialization updated: [id={}] {}", saved.getId(), saved.getTitle());
         return toResponse(saved);
     }
 
@@ -68,11 +80,44 @@ public class SpecializationService {
         return (url != null && !url.isBlank()) ? url : null;
     }
 
+    private String generateUniqueSlug(String title, Long excludeId) {
+        String turkishReplaced = title
+                .replace('ı', 'i').replace('İ', 'i')
+                .replace('ğ', 'g').replace('Ğ', 'g')
+                .replace('ü', 'u').replace('Ü', 'u')
+                .replace('ş', 's').replace('Ş', 's')
+                .replace('ö', 'o').replace('Ö', 'o')
+                .replace('ç', 'c').replace('Ç', 'c');
+        String normalized = Normalizer.normalize(turkishReplaced, Normalizer.Form.NFD)
+                .replaceAll("[^\\p{ASCII}]", "");
+        String baseSlug = normalized
+                .toLowerCase()
+                .trim()
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-");
+
+        String slug = baseSlug;
+        int counter = 2;
+        while (isSlugTaken(slug, excludeId)) {
+            slug = baseSlug + "-" + counter++;
+        }
+        return slug;
+    }
+
+    private boolean isSlugTaken(String slug, Long excludeId) {
+        if (excludeId == null) {
+            return specializationRepository.existsBySlug(slug);
+        }
+        return specializationRepository.existsBySlugAndIdNot(slug, excludeId);
+    }
+
     private SpecializationResponse toResponse(Specialization s) {
         return new SpecializationResponse(
                 s.getId(),
                 s.getTitle(),
-                s.getDescription(),
+                s.getSlug(),
+                s.getSummary(),
+                s.getContent(),
                 s.getImage(),
                 s.getDisplayOrder(),
                 s.getCreatedAt(),

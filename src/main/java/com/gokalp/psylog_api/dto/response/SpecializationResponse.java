@@ -5,7 +5,9 @@ import java.time.LocalDateTime;
 public record SpecializationResponse(
         Long id,
         String title,
-        String description,
+        String slug,
+        String summary,
+        String content,
         String image,
         Integer displayOrder,
         LocalDateTime createdAt,
