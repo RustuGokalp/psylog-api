@@ -1,6 +1,7 @@
 package com.gokalp.psylog_api.service;
 
 import com.gokalp.psylog_api.dto.request.PostRequest;
+import com.gokalp.psylog_api.dto.response.CommentAdminResponse;
 import com.gokalp.psylog_api.dto.response.CommentPublicResponse;
 import com.gokalp.psylog_api.dto.response.PostDetailResponse;
 import com.gokalp.psylog_api.dto.response.PostSummaryResponse;
@@ -66,10 +67,17 @@ public class PostService {
     // Admin
 
     @Transactional(readOnly = true)
+    public PostDetailResponse getPostById(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + id));
+        return toDetail(post, List.of());
+    }
+
+    @Transactional(readOnly = true)
     public List<PostSummaryResponse> getAllPosts() {
         return postRepository.findAll()
                 .stream()
-                .map(this::toSummary)
+                .map(this::toAdminSummary)
                 .toList();
     }
 
@@ -129,7 +137,34 @@ public class PostService {
                 post.getTags(),
                 post.isPublished(),
                 post.getCreatedAt(),
-                post.getReadingTime()
+                post.getUpdatedAt(),
+                post.getPublishAt(),
+                post.getReadingTime(),
+                null
+        );
+    }
+
+    private PostSummaryResponse toAdminSummary(Post post) {
+        List<CommentAdminResponse> comments = commentRepository
+                .findByPostOrderByCreatedAtAsc(post)
+                .stream()
+                .map(c -> new CommentAdminResponse(
+                        c.getId(), post.getId(), post.getTitle(), post.getSlug(),
+                        c.getAuthor(), c.getEmail(), c.getContent(), c.getStatus(), c.getCreatedAt()))
+                .toList();
+        return new PostSummaryResponse(
+                post.getId(),
+                post.getTitle(),
+                post.getSlug(),
+                post.getSummary(),
+                post.getCoverImage(),
+                post.getTags(),
+                post.isPublished(),
+                post.getCreatedAt(),
+                post.getUpdatedAt(),
+                post.getPublishAt(),
+                post.getReadingTime(),
+                comments
         );
     }
 
@@ -145,6 +180,7 @@ public class PostService {
                 post.isPublished(),
                 post.getCreatedAt(),
                 post.getUpdatedAt(),
+                post.getPublishAt(),
                 comments,
                 post.getReadingTime()
         );

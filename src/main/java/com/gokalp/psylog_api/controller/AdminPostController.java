@@ -26,6 +26,11 @@ public class AdminPostController {
         return ResponseEntity.ok(postService.getAllPosts());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<PostDetailResponse> getPostById(@PathVariable Long id) {
+        return ResponseEntity.ok(postService.getPostById(id));
+    }
+
     @PostMapping
     public ResponseEntity<PostDetailResponse> createPost(@Valid @RequestBody PostRequest request) {
         return ResponseEntity.ok(postService.createPost(request));

@@ -15,12 +15,13 @@ public class PostDetailResponse {
     private boolean published;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime publishAt;
     private List<CommentPublicResponse> comments;
     private Integer readingTime;
 
     public PostDetailResponse(Long id, String title, String slug, String summary, String content,
                                String coverImage, List<String> tags, boolean published,
-                               LocalDateTime createdAt, LocalDateTime updatedAt,
+                               LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime publishAt,
                                List<CommentPublicResponse> comments, Integer readingTime) {
         this.id = id;
         this.title = title;
@@ -32,6 +33,7 @@ public class PostDetailResponse {
         this.published = published;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.publishAt = publishAt;
         this.comments = comments;
         this.readingTime = readingTime;
     }
@@ -46,6 +48,7 @@ public class PostDetailResponse {
     public boolean isPublished() { return published; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public LocalDateTime getPublishAt() { return publishAt; }
     public List<CommentPublicResponse> getComments() { return comments; }
     public Integer getReadingTime() { return readingTime; }
 }
