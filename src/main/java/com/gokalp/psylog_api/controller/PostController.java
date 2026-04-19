@@ -1,12 +1,11 @@
 package com.gokalp.psylog_api.controller;
 
+import com.gokalp.psylog_api.dto.response.PagedResponse;
 import com.gokalp.psylog_api.dto.response.PostDetailResponse;
 import com.gokalp.psylog_api.dto.response.PostSummaryResponse;
 import com.gokalp.psylog_api.service.PostService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -19,10 +18,12 @@ public class PostController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PostSummaryResponse>> getPublishedPosts(
+    public ResponseEntity<PagedResponse<PostSummaryResponse>> getPublishedPosts(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String tag) {
-        return ResponseEntity.ok(postService.searchPublishedPosts(keyword, tag));
+            @RequestParam(required = false) String tag,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(postService.searchPublishedPosts(keyword, tag, page, size));
     }
 
     @GetMapping("/{slug}")

@@ -1,8 +1,10 @@
 package com.gokalp.psylog_api.service;
 
+import com.gokalp.psylog_api.dto.request.PostPatchRequest;
 import com.gokalp.psylog_api.dto.request.PostRequest;
 import com.gokalp.psylog_api.dto.response.CommentAdminResponse;
 import com.gokalp.psylog_api.dto.response.CommentPublicResponse;
+import com.gokalp.psylog_api.dto.response.PagedResponse;
 import com.gokalp.psylog_api.dto.response.PostDetailResponse;
 import com.gokalp.psylog_api.dto.response.PostSummaryResponse;
 import com.gokalp.psylog_api.entity.CommentStatus;
@@ -12,6 +14,9 @@ import com.gokalp.psylog_api.repository.CommentRepository;
 import com.gokalp.psylog_api.repository.PostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,25 +36,25 @@ public class PostService {
         this.commentRepository = commentRepository;
     }
 
-    // Public
-
     @Transactional(readOnly = true)
-    public List<PostSummaryResponse> searchPublishedPosts(String keyword, String tag) {
+    public PagedResponse<PostSummaryResponse> searchPublishedPosts(String keyword, String tag, int page, int size) {
         String k = (keyword != null && keyword.isBlank()) ? null : keyword;
         String t = (tag != null && tag.isBlank()) ? null : tag;
 
-        List<Post> posts;
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<Post> posts;
         if (k != null && t != null) {
-            posts = postRepository.findPublishedByKeywordAndTag(k, t);
+            posts = postRepository.findPublishedByKeywordAndTag(k, t, pageable);
         } else if (k != null) {
-            posts = postRepository.findPublishedByKeyword(k);
+            posts = postRepository.findPublishedByKeyword(k, pageable);
         } else if (t != null) {
-            posts = postRepository.findPublishedByTag(t);
+            posts = postRepository.findPublishedByTag(t, pageable);
         } else {
-            posts = postRepository.findByPublishedTrueOrderByCreatedAtDesc();
+            posts = postRepository.findByPublishedTrue(pageable);
         }
 
-        return posts.stream().map(this::toSummary).toList();
+        return new PagedResponse<>(posts.map(this::toSummary));
     }
 
     @Transactional(readOnly = true)
@@ -63,8 +68,6 @@ public class PostService {
                 .toList();
         return toDetail(post, comments);
     }
-
-    // Admin
 
     @Transactional(readOnly = true)
     public PostDetailResponse getPostById(Long id) {
@@ -117,6 +120,27 @@ public class PostService {
     }
 
     @Transactional
+    public PostDetailResponse patchPost(Long id, PostPatchRequest request) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + id));
+        if (request.getTitle() != null) {
+            String newTitle = request.getTitle().orElse(null);
+            post.setTitle(newTitle);
+            post.setSlug(generateUniqueSlug(newTitle != null ? newTitle : post.getTitle(), post.getId()));
+        }
+        if (request.getSummary() != null) post.setSummary(request.getSummary().orElse(null));
+        if (request.getContent() != null) post.setContent(request.getContent().orElse(null));
+        if (request.getCoverImage() != null) post.setCoverImage(request.getCoverImage().orElse(null));
+        if (request.getTags() != null) post.setTags(request.getTags().orElse(List.of()));
+        if (request.getPublished() != null) post.setPublished(request.getPublished().orElse(false));
+        if (request.getPublishAt() != null) post.setPublishAt(request.getPublishAt().orElse(null));
+        if (request.getReadingTime() != null) post.setReadingTime(request.getReadingTime().orElse(null));
+        Post saved = postRepository.save(post);
+        log.info("Post patched: [id={}] {}", saved.getId(), saved.getTitle());
+        return toDetail(saved, List.of());
+    }
+
+    @Transactional
     public void deletePost(Long id) {
         if (!postRepository.existsById(id)) {
             throw new ResourceNotFoundException("Post not found: " + id);
@@ -124,8 +148,6 @@ public class PostService {
         postRepository.deleteById(id);
         log.info("Post deleted: [id={}]", id);
     }
-
-    // Mappers
 
     private PostSummaryResponse toSummary(Post post) {
         return new PostSummaryResponse(

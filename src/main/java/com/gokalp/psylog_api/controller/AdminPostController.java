@@ -1,5 +1,6 @@
 package com.gokalp.psylog_api.controller;
 
+import com.gokalp.psylog_api.dto.request.PostPatchRequest;
 import com.gokalp.psylog_api.dto.request.PostRequest;
 import com.gokalp.psylog_api.dto.response.PostDetailResponse;
 import com.gokalp.psylog_api.dto.response.PostSummaryResponse;
@@ -40,6 +41,12 @@ public class AdminPostController {
     public ResponseEntity<PostDetailResponse> updatePost(@PathVariable Long id,
                                                           @Valid @RequestBody PostRequest request) {
         return ResponseEntity.ok(postService.updatePost(id, request));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<PostDetailResponse> patchPost(@PathVariable Long id,
+                                                         @RequestBody PostPatchRequest request) {
+        return ResponseEntity.ok(postService.patchPost(id, request));
     }
 
     @DeleteMapping("/{id}")
