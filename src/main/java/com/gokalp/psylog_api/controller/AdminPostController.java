@@ -2,6 +2,7 @@ package com.gokalp.psylog_api.controller;
 
 import com.gokalp.psylog_api.dto.request.PostPatchRequest;
 import com.gokalp.psylog_api.dto.request.PostRequest;
+import com.gokalp.psylog_api.dto.response.PagedResponse;
 import com.gokalp.psylog_api.dto.response.PostDetailResponse;
 import com.gokalp.psylog_api.dto.response.PostSummaryResponse;
 import com.gokalp.psylog_api.service.PostService;
@@ -9,7 +10,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -23,8 +23,10 @@ public class AdminPostController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PostSummaryResponse>> getAllPosts() {
-        return ResponseEntity.ok(postService.getAllPosts());
+    public ResponseEntity<PagedResponse<PostSummaryResponse>> getAllPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(postService.getAllPosts(page, size));
     }
 
     @GetMapping("/{id}")

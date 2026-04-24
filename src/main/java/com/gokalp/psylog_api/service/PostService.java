@@ -77,11 +77,9 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostSummaryResponse> getAllPosts() {
-        return postRepository.findAll()
-                .stream()
-                .map(this::toAdminSummary)
-                .toList();
+    public PagedResponse<PostSummaryResponse> getAllPosts(int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        return new PagedResponse<>(postRepository.findAll(pageable).map(this::toAdminSummary));
     }
 
     @Transactional
