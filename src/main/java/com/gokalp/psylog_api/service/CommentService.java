@@ -102,6 +102,7 @@ public class CommentService {
         return new CommentPublicResponse(
                 comment.getId(),
                 comment.getAuthor(),
+                comment.getEmail(),
                 comment.getContent(),
                 comment.getCreatedAt()
         );

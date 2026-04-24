@@ -64,7 +64,7 @@ public class PostService {
         List<CommentPublicResponse> comments = commentRepository
                 .findByPostAndStatusOrderByCreatedAtAsc(post, CommentStatus.APPROVED)
                 .stream()
-                .map(c -> new CommentPublicResponse(c.getId(), c.getAuthor(), c.getContent(), c.getCreatedAt()))
+                .map(c -> new CommentPublicResponse(c.getId(), c.getAuthor(), c.getEmail(), c.getContent(), c.getCreatedAt()))
                 .toList();
         return toDetail(post, comments);
     }
