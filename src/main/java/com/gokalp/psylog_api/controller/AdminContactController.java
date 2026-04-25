@@ -1,13 +1,12 @@
 package com.gokalp.psylog_api.controller;
 
 import com.gokalp.psylog_api.dto.response.ContactMessageResponse;
+import com.gokalp.psylog_api.dto.response.PagedResponse;
 import com.gokalp.psylog_api.repository.ContactMessageRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin/contact")
@@ -20,11 +19,13 @@ public class AdminContactController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ContactMessageResponse>> getContactMessages() {
-        List<ContactMessageResponse> messages = contactMessageRepository.findAllByOrderByCreatedAtDesc()
-                .stream()
-                .map(ContactMessageResponse::new)
-                .toList();
-        return ResponseEntity.ok(messages);
+    public ResponseEntity<PagedResponse<ContactMessageResponse>> getContactMessages(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        PagedResponse<ContactMessageResponse> response = new PagedResponse<>(
+                contactMessageRepository.findAll(pageable).map(ContactMessageResponse::new)
+        );
+        return ResponseEntity.ok(response);
     }
 }

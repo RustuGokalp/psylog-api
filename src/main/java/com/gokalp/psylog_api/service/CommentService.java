@@ -3,6 +3,7 @@ package com.gokalp.psylog_api.service;
 import com.gokalp.psylog_api.dto.request.CommentRequest;
 import com.gokalp.psylog_api.dto.response.CommentAdminResponse;
 import com.gokalp.psylog_api.dto.response.CommentPublicResponse;
+import com.gokalp.psylog_api.dto.response.PagedResponse;
 import com.gokalp.psylog_api.entity.Comment;
 import com.gokalp.psylog_api.entity.CommentStatus;
 import com.gokalp.psylog_api.entity.Post;
@@ -11,6 +12,8 @@ import com.gokalp.psylog_api.repository.CommentRepository;
 import com.gokalp.psylog_api.repository.PostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,11 +50,10 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentAdminResponse> getPendingComments() {
-        return commentRepository.findByStatusOrderByCreatedAtAsc(CommentStatus.PENDING)
-                .stream()
-                .map(this::toAdminResponse)
-                .toList();
+    public PagedResponse<CommentAdminResponse> getPendingComments(int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
+        return new PagedResponse<>(commentRepository.findByStatus(CommentStatus.PENDING, pageable)
+                .map(this::toAdminResponse));
     }
 
     @Transactional(readOnly = true)

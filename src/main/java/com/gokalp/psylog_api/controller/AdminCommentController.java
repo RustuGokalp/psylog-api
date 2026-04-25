@@ -1,6 +1,7 @@
 package com.gokalp.psylog_api.controller;
 
 import com.gokalp.psylog_api.dto.response.CommentAdminResponse;
+import com.gokalp.psylog_api.dto.response.PagedResponse;
 import com.gokalp.psylog_api.service.CommentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +20,10 @@ public class AdminCommentController {
     }
 
     @GetMapping("/comments")
-    public ResponseEntity<List<CommentAdminResponse>> getPendingComments() {
-        return ResponseEntity.ok(commentService.getPendingComments());
+    public ResponseEntity<PagedResponse<CommentAdminResponse>> getPendingComments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(commentService.getPendingComments(page, size));
     }
 
     @GetMapping("/posts/{postId}/comments")

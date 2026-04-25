@@ -33,6 +33,13 @@ public class SpecializationService {
     }
 
     @Transactional(readOnly = true)
+    public SpecializationResponse getById(Long id) {
+        Specialization specialization = specializationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Specialization not found with id: " + id));
+        return toResponse(specialization);
+    }
+
+    @Transactional(readOnly = true)
     public SpecializationResponse getBySlug(String slug) {
         Specialization specialization = specializationRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Specialization not found: " + slug));

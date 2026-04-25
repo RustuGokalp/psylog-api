@@ -29,6 +29,12 @@ public class AdminSpecializationController {
         return ResponseEntity.ok(specializationService.getAll());
     }
 
+    @Operation(summary = "Get specialization by id", description = "Returns 404 if not found.")
+    @GetMapping("/{id}")
+    public ResponseEntity<SpecializationResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(specializationService.getById(id));
+    }
+
     @Operation(summary = "Create a specialization", description = "image and displayOrder are optional.")
     @PostMapping
     public ResponseEntity<SpecializationResponse> create(@Valid @RequestBody SpecializationRequest request) {
