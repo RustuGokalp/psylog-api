@@ -77,9 +77,24 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<PostSummaryResponse> getAllPosts(int page, int size) {
+    public PagedResponse<PostSummaryResponse> getAllPosts(String keyword, String tag, int page, int size) {
+        String k = (keyword != null && keyword.isBlank()) ? null : keyword;
+        String t = (tag != null && tag.isBlank()) ? null : tag;
+
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        return new PagedResponse<>(postRepository.findAll(pageable).map(this::toAdminSummary));
+
+        Page<Post> posts;
+        if (k != null && t != null) {
+            posts = postRepository.findAllByKeywordAndTag(k, t, pageable);
+        } else if (k != null) {
+            posts = postRepository.findAllByKeyword(k, pageable);
+        } else if (t != null) {
+            posts = postRepository.findAllByTag(t, pageable);
+        } else {
+            posts = postRepository.findAll(pageable);
+        }
+
+        return new PagedResponse<>(posts.map(this::toAdminSummary));
     }
 
     @Transactional

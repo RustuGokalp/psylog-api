@@ -33,6 +33,20 @@ public interface PostRepository extends JpaRepository<Post, Long> {
            "     OR LOWER(p.summary) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Post> findPublishedByKeywordAndTag(@Param("keyword") String keyword, @Param("tag") String tag, Pageable pageable);
 
+    @Query("SELECT p FROM Post p " +
+           "WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "   OR LOWER(p.summary) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<Post> findAllByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    @Query("SELECT DISTINCT p FROM Post p LEFT JOIN p.tags t WHERE t = :tag")
+    Page<Post> findAllByTag(@Param("tag") String tag, Pageable pageable);
+
+    @Query("SELECT DISTINCT p FROM Post p LEFT JOIN p.tags t " +
+           "WHERE t = :tag " +
+           "AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "     OR LOWER(p.summary) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Post> findAllByKeywordAndTag(@Param("keyword") String keyword, @Param("tag") String tag, Pageable pageable);
+
     @Modifying
     @Query("UPDATE Post p SET p.published = true WHERE p.published = false AND p.publishAt IS NOT NULL AND p.publishAt <= :now")
     int publishScheduledPosts(@Param("now") LocalDateTime now);

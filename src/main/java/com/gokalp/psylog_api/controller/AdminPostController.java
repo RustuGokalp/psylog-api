@@ -24,9 +24,11 @@ public class AdminPostController {
 
     @GetMapping
     public ResponseEntity<PagedResponse<PostSummaryResponse>> getAllPosts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String tag,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(postService.getAllPosts(page, size));
+        return ResponseEntity.ok(postService.getAllPosts(keyword, tag, page, size));
     }
 
     @GetMapping("/{id}")
