@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 public class ContactRequest {
 
     @NotBlank
-    @Size(max = 100)
+    @Size(max = 50)
     private String fullName;
 
     @NotBlank
@@ -17,11 +17,11 @@ public class ContactRequest {
     private String email;
 
     @NotBlank
-    @Size(max = 200)
+    @Size(max = 150)
     private String subject;
 
     @NotBlank
-    @Size(max = 2000)
+    @Size(max = 750)
     private String message;
 
     @Pattern(regexp = "^(\\(\\d+\\)(\\s\\d+)+|\\d{7,15}|\\d+(-\\d+)+)$", message = "Invalid phone number format")
