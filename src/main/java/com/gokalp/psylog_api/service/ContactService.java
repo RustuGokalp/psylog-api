@@ -14,9 +14,11 @@ public class ContactService {
     private static final Logger log = LoggerFactory.getLogger(ContactService.class);
 
     private final ContactMessageRepository contactMessageRepository;
+    private final EmailService emailService;
 
-    public ContactService(ContactMessageRepository contactMessageRepository) {
+    public ContactService(ContactMessageRepository contactMessageRepository, EmailService emailService) {
         this.contactMessageRepository = contactMessageRepository;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -29,5 +31,7 @@ public class ContactService {
         message.setMobilePhone(request.getMobilePhone());
         contactMessageRepository.save(message);
         log.info("Contact message received from: {}", request.getEmail());
+
+        emailService.sendContactNotification(message);
     }
 }
