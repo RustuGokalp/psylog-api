@@ -26,10 +26,14 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
+    private final EmailService emailService;
 
-    public CommentService(CommentRepository commentRepository, PostRepository postRepository) {
+    public CommentService(CommentRepository commentRepository,
+                          PostRepository postRepository,
+                          EmailService emailService) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -45,6 +49,8 @@ public class CommentService {
 
         Comment saved = commentRepository.save(comment);
         log.info("Comment submitted: [id={}, postId={}]", saved.getId(), postId);
+
+        emailService.sendCommentNotification(saved);
 
         return toPublicResponse(saved);
     }
