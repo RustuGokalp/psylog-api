@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "contact_info")
@@ -27,6 +29,10 @@ public class ContactInfo {
 
     private LocalDateTime updatedAt;
 
+    @OneToMany(mappedBy = "contactInfo", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("dayOfWeek ASC")
+    private List<WorkingHour> workingHours = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now(ZoneId.of("Europe/Istanbul"));
@@ -49,4 +55,5 @@ public class ContactInfo {
     public void setLocation(String location) { this.location = location; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public List<WorkingHour> getWorkingHours() { return workingHours; }
 }

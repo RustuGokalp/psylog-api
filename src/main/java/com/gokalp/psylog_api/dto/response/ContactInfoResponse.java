@@ -3,6 +3,7 @@ package com.gokalp.psylog_api.dto.response;
 import com.gokalp.psylog_api.entity.ContactInfo;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class ContactInfoResponse {
 
@@ -11,6 +12,7 @@ public class ContactInfoResponse {
     private final String email;
     private final String location;
     private final LocalDateTime updatedAt;
+    private final List<WorkingHourResponse> workingHours;
 
     public ContactInfoResponse(ContactInfo c) {
         this.id = c.getId();
@@ -18,6 +20,9 @@ public class ContactInfoResponse {
         this.email = c.getEmail();
         this.location = c.getLocation();
         this.updatedAt = c.getUpdatedAt();
+        this.workingHours = c.getWorkingHours().stream()
+                .map(WorkingHourResponse::new)
+                .toList();
     }
 
     public Long getId() { return id; }
@@ -25,4 +30,5 @@ public class ContactInfoResponse {
     public String getEmail() { return email; }
     public String getLocation() { return location; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public List<WorkingHourResponse> getWorkingHours() { return workingHours; }
 }
