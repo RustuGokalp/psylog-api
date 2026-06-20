@@ -24,6 +24,9 @@ public class ContactInfo {
     @Column(nullable = false)
     private String location;
 
+    @Column
+    private String instagram;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -53,6 +56,8 @@ public class ContactInfo {
     public void setEmail(String email) { this.email = email; }
     public String getLocation() { return location; }
     public void setLocation(String location) { this.location = location; }
+    public String getInstagram() { return instagram; }
+    public void setInstagram(String instagram) { this.instagram = instagram; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public List<WorkingHour> getWorkingHours() { return workingHours; }

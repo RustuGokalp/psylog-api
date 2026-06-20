@@ -63,6 +63,7 @@ class ContactInfoServiceTest {
         req.setPhone("532-111-22-33");
         req.setEmail("info@example.com");
         req.setLocation("İstanbul");
+        req.setInstagram("drpsikolog");
         req.setWorkingHours(hours);
         return req;
     }
@@ -163,5 +164,25 @@ class ContactInfoServiceTest {
         assertFalse(existing.getWorkingHours().contains(stale), "stale row should be cleared");
         assertEquals(7, response.getWorkingHours().size());
         assertEquals(DayOfWeek.MONDAY, response.getWorkingHours().get(0).getDayOfWeek());
+        assertEquals("drpsikolog", response.getInstagram());
+    }
+
+    // ─── instagram ──────────────────────────────────────────────────────────────
+
+    // Instagram is optional: a null value is accepted and persisted as null
+    // without errors, keeping the existing single row intact.
+    @Test
+    void createContactInfo_nullInstagram_savesWithNull() {
+        ContactInfoRequest req = request(fullWeek());
+        req.setInstagram(null);
+        when(contactInfoRepository.findFirstBy()).thenReturn(Optional.empty());
+        when(contactInfoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ContactInfoResponse response = service().createContactInfo(req);
+
+        ArgumentCaptor<ContactInfo> captor = ArgumentCaptor.forClass(ContactInfo.class);
+        verify(contactInfoRepository).save(captor.capture());
+        assertNull(captor.getValue().getInstagram());
+        assertNull(response.getInstagram());
     }
 }

@@ -11,6 +11,7 @@ public class ContactInfoResponse {
     private final String phone;
     private final String email;
     private final String location;
+    private final String instagram;
     private final LocalDateTime updatedAt;
     private final List<WorkingHourResponse> workingHours;
 
@@ -19,6 +20,7 @@ public class ContactInfoResponse {
         this.phone = c.getPhone();
         this.email = c.getEmail();
         this.location = c.getLocation();
+        this.instagram = c.getInstagram();
         this.updatedAt = c.getUpdatedAt();
         this.workingHours = c.getWorkingHours().stream()
                 .map(WorkingHourResponse::new)
@@ -29,6 +31,7 @@ public class ContactInfoResponse {
     public String getPhone() { return phone; }
     public String getEmail() { return email; }
     public String getLocation() { return location; }
+    public String getInstagram() { return instagram; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public List<WorkingHourResponse> getWorkingHours() { return workingHours; }
 }

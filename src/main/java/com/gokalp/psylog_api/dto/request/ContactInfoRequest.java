@@ -28,6 +28,14 @@ public class ContactInfoRequest {
     @Size(max = 200)
     private String location;
 
+    @Size(max = 30)
+    @Pattern(
+            regexp = "^[a-zA-Z0-9._]+$",
+            message = "Geçersiz Instagram kullanıcı adı"
+    )
+    @Schema(example = "drpsikolog")
+    private String instagram;
+
     @Valid
     @NotNull
     @Size(min = 7, max = 7, message = "Haftanın 7 günü de gönderilmeli")
@@ -39,6 +47,8 @@ public class ContactInfoRequest {
     public void setEmail(String email) { this.email = email; }
     public String getLocation() { return location; }
     public void setLocation(String location) { this.location = location; }
+    public String getInstagram() { return instagram; }
+    public void setInstagram(String instagram) { this.instagram = instagram; }
     public List<WorkingHourRequest> getWorkingHours() { return workingHours; }
     public void setWorkingHours(List<WorkingHourRequest> workingHours) { this.workingHours = workingHours; }
 }

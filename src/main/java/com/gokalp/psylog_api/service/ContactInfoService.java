@@ -46,6 +46,7 @@ public class ContactInfoService {
         contactInfo.setPhone(request.getPhone());
         contactInfo.setEmail(request.getEmail());
         contactInfo.setLocation(request.getLocation());
+        contactInfo.setInstagram(request.getInstagram());
         applyWorkingHours(contactInfo, request.getWorkingHours());
         ContactInfo saved = contactInfoRepository.save(contactInfo);
         log.info("Contact info created: [id={}]", saved.getId());
@@ -59,6 +60,7 @@ public class ContactInfoService {
         contactInfo.setPhone(request.getPhone());
         contactInfo.setEmail(request.getEmail());
         contactInfo.setLocation(request.getLocation());
+        contactInfo.setInstagram(request.getInstagram());
         applyWorkingHours(contactInfo, request.getWorkingHours());
         ContactInfo saved = contactInfoRepository.save(contactInfo);
         log.info("Contact info updated: [id={}]", saved.getId());
