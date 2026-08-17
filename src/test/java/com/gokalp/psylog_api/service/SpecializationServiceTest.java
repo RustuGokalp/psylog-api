@@ -202,6 +202,46 @@ class SpecializationServiceTest {
 
     // ─── delete ─────────────────────────────────────────────────────────────
 
+    // ─── HTML sanitization ──────────────────────────────────────────────────
+
+    // TC-12: request carries malicious HTML → sanitized version is persisted
+    @Test
+    void create_sanitizesSummaryAndContentBeforeSaving() {
+        SpecializationRequest request = buildRequest(
+                "Anksiyete",
+                "<p>Özet</p><script>alert('xss')</script>",
+                "<p onclick=\"steal()\">İçerik</p><a href=\"javascript:alert(1)\">tıkla</a>",
+                null,
+                1);
+        Specialization saved = buildEntity(1L, "Anksiyete", "anksiyete", "<p>Özet</p>", "<p>İçerik</p><a>tıkla</a>", null, 1);
+        when(specializationRepository.existsBySlug(anyString())).thenReturn(false);
+        when(specializationRepository.save(any())).thenReturn(saved);
+
+        specializationService.create(request);
+
+        ArgumentCaptor<Specialization> captor = ArgumentCaptor.forClass(Specialization.class);
+        verify(specializationRepository).save(captor.capture());
+        assertEquals("<p>Özet</p>", captor.getValue().getSummary());
+        assertEquals("<p>İçerik</p><a>tıkla</a>", captor.getValue().getContent());
+    }
+
+    // TC-13: plain text stays byte-for-byte identical after sanitization
+    @Test
+    void update_keepsPlainTextSummaryUnchanged() {
+        Specialization existing = buildEntity(1L, "Anksiyete", "anksiyete", "Özet", "İçerik", null, 1);
+        SpecializationRequest request = buildRequest("Anksiyete", "Kısa bir özet", "Düz içerik", null, 1);
+        when(specializationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(specializationRepository.existsBySlugAndIdNot(anyString(), any())).thenReturn(false);
+        when(specializationRepository.save(any())).thenReturn(existing);
+
+        specializationService.update(1L, request);
+
+        ArgumentCaptor<Specialization> captor = ArgumentCaptor.forClass(Specialization.class);
+        verify(specializationRepository).save(captor.capture());
+        assertEquals("Kısa bir özet", captor.getValue().getSummary());
+        assertEquals("Düz içerik", captor.getValue().getContent());
+    }
+
     // TC-10: existing id → entity deleted
     @Test
     void delete_existingId_deletesEntity() {

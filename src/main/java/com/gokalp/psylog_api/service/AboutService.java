@@ -6,6 +6,7 @@ import com.gokalp.psylog_api.entity.About;
 import com.gokalp.psylog_api.exception.AlreadyExistsException;
 import com.gokalp.psylog_api.exception.ResourceNotFoundException;
 import com.gokalp.psylog_api.repository.AboutRepository;
+import com.gokalp.psylog_api.util.HtmlSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -42,7 +43,7 @@ public class AboutService {
             throw new IllegalArgumentException("Message is required");
         }
         About about = new About();
-        about.setMessage(request.getMessage());
+        about.setMessage(HtmlSanitizer.sanitize(request.getMessage()));
         about.setProfileImage(normalizeUrl(request.getProfileImage()));
         about.setEducation(normalizeList(request.getEducation()));
         about.setWorkingAreas(normalizeList(request.getWorkingAreas()));
@@ -56,7 +57,7 @@ public class AboutService {
         About about = aboutRepository.findFirstBy()
                 .orElseThrow(() -> new ResourceNotFoundException("About record not found"));
         if (request.getMessage() != null) {
-            about.setMessage(request.getMessage());
+            about.setMessage(HtmlSanitizer.sanitize(request.getMessage()));
         }
         if (request.getProfileImage() != null) {
             about.setProfileImage(normalizeUrl(request.getProfileImage()));

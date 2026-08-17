@@ -12,6 +12,7 @@ import com.gokalp.psylog_api.entity.Post;
 import com.gokalp.psylog_api.exception.ResourceNotFoundException;
 import com.gokalp.psylog_api.repository.CommentRepository;
 import com.gokalp.psylog_api.repository.PostRepository;
+import com.gokalp.psylog_api.util.HtmlSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -102,8 +103,8 @@ public class PostService {
         Post post = new Post();
         post.setTitle(request.getTitle());
         post.setSlug(generateUniqueSlug(request.getTitle(), null));
-        post.setSummary(request.getSummary());
-        post.setContent(request.getContent());
+        post.setSummary(HtmlSanitizer.sanitize(request.getSummary()));
+        post.setContent(HtmlSanitizer.sanitize(request.getContent()));
         post.setCoverImage(request.getCoverImage());
         post.setTags(request.getTags() != null ? request.getTags() : List.of());
         post.setPublished(request.getPublished());
@@ -120,8 +121,8 @@ public class PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + id));
         post.setTitle(request.getTitle());
         post.setSlug(generateUniqueSlug(request.getTitle(), post.getId()));
-        post.setSummary(request.getSummary());
-        post.setContent(request.getContent());
+        post.setSummary(HtmlSanitizer.sanitize(request.getSummary()));
+        post.setContent(HtmlSanitizer.sanitize(request.getContent()));
         post.setCoverImage(request.getCoverImage());
         post.setTags(request.getTags() != null ? request.getTags() : List.of());
         post.setPublished(request.getPublished());
@@ -141,8 +142,8 @@ public class PostService {
             post.setTitle(newTitle);
             post.setSlug(generateUniqueSlug(newTitle != null ? newTitle : post.getTitle(), post.getId()));
         }
-        if (request.getSummary() != null) post.setSummary(request.getSummary().orElse(null));
-        if (request.getContent() != null) post.setContent(request.getContent().orElse(null));
+        if (request.getSummary() != null) post.setSummary(HtmlSanitizer.sanitize(request.getSummary().orElse(null)));
+        if (request.getContent() != null) post.setContent(HtmlSanitizer.sanitize(request.getContent().orElse(null)));
         if (request.getCoverImage() != null) post.setCoverImage(request.getCoverImage().orElse(null));
         if (request.getTags() != null) post.setTags(request.getTags().orElse(List.of()));
         if (request.getPublished() != null) post.setPublished(request.getPublished().orElse(false));
