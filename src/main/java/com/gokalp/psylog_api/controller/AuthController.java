@@ -5,6 +5,7 @@ import com.gokalp.psylog_api.dto.response.AuthResponse;
 import com.gokalp.psylog_api.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,17 @@ public class AuthController {
 
     private final AuthService authService;
 
+    // Local: secure=false, sameSite=Lax, domain empty
+    // Production: secure=true, sameSite=None, domain=.psktugcetekin.com
+    @Value("${cookie.secure}")
+    private boolean cookieSecure;
+
+    @Value("${cookie.same-site}")
+    private String cookieSameSite;
+
+    @Value("${cookie.domain}")
+    private String cookieDomain;
+
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
@@ -27,14 +39,7 @@ public class AuthController {
                                                        HttpServletResponse response) {
         AuthService.LoginResult result = authService.login(request);
 
-        ResponseCookie cookie = ResponseCookie.from("token", result.token())
-                .httpOnly(true)
-                .secure(false) // set to true in production (HTTPS)
-                .path("/")
-                .maxAge(Duration.ofMillis(result.expiresIn()))
-                .sameSite("Strict")
-                .build();
-
+        ResponseCookie cookie = tokenCookie(result.token(), Duration.ofMillis(result.expiresIn()));
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ResponseEntity.ok(result.userInfo());
@@ -42,17 +47,26 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletResponse response) {
-        ResponseCookie cookie = ResponseCookie.from("token", "")
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Strict")
-                .build();
-
+        // Same attributes as login — otherwise the browser will not remove the cookie
+        ResponseCookie cookie = tokenCookie("", Duration.ZERO);
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ResponseEntity.ok().build();
+    }
+
+    private ResponseCookie tokenCookie(String value, Duration maxAge) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("token", value)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .maxAge(maxAge)
+                .sameSite(cookieSameSite);
+
+        if (cookieDomain != null && !cookieDomain.isBlank()) {
+            builder.domain(cookieDomain);
+        }
+
+        return builder.build();
     }
 
     @GetMapping("/validate")

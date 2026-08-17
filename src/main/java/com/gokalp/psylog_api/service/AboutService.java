@@ -88,13 +88,18 @@ public class AboutService {
         return (list != null) ? list : new ArrayList<>();
     }
 
+    // Lazily loaded collections — copy them while the transaction is still open
+    private List<String> copyList(List<String> list) {
+        return (list != null) ? List.copyOf(list) : List.of();
+    }
+
     private AboutResponse toResponse(About about) {
         return new AboutResponse(
                 about.getId(),
                 about.getMessage(),
                 about.getProfileImage(),
-                about.getEducation(),
-                about.getWorkingAreas(),
+                copyList(about.getEducation()),
+                copyList(about.getWorkingAreas()),
                 about.getCreatedAt(),
                 about.getUpdatedAt()
         );

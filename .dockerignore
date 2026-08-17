@@ -1,0 +1,7 @@
+target/
+.git/
+.idea/
+.claude/
+.vscode/
+*.md
+src/main/resources/application.properties

@@ -162,6 +162,12 @@ public class PostService {
         log.info("Post deleted: [id={}]", id);
     }
 
+    // Tags are lazily loaded — copy them while the transaction is still open,
+    // otherwise JSON serialization fails after the session is closed
+    private static List<String> copyTags(Post post) {
+        return post.getTags() == null ? List.of() : List.copyOf(post.getTags());
+    }
+
     private PostSummaryResponse toSummary(Post post) {
         return new PostSummaryResponse(
                 post.getId(),
@@ -169,7 +175,7 @@ public class PostService {
                 post.getSlug(),
                 post.getSummary(),
                 post.getCoverImage(),
-                post.getTags(),
+                copyTags(post),
                 post.isPublished(),
                 post.getCreatedAt(),
                 post.getUpdatedAt(),
@@ -193,7 +199,7 @@ public class PostService {
                 post.getSlug(),
                 post.getSummary(),
                 post.getCoverImage(),
-                post.getTags(),
+                copyTags(post),
                 post.isPublished(),
                 post.getCreatedAt(),
                 post.getUpdatedAt(),
@@ -211,7 +217,7 @@ public class PostService {
                 post.getSummary(),
                 post.getContent(),
                 post.getCoverImage(),
-                post.getTags(),
+                copyTags(post),
                 post.isPublished(),
                 post.getCreatedAt(),
                 post.getUpdatedAt(),

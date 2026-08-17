@@ -33,7 +33,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = extractTokenFromCookie(request);
 
-        if (token == null) {
+        // A blank cookie value (e.g. left over from logout) is treated as no token at all
+        if (token == null || token.isBlank()) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -51,7 +52,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             // Invalid or expired token → continue unauthenticated, Spring Security returns 401 on protected routes
         }
 

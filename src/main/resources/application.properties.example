@@ -1,21 +1,43 @@
 spring.application.name=psylog-api
 
+# Server
+server.port=${PORT:8080}
+
 # Database
-spring.datasource.url=jdbc:postgresql://localhost:5432/psylog
-spring.datasource.username=YOUR_DB_USERNAME
-spring.datasource.password=YOUR_DB_PASSWORD
+spring.datasource.url=${DATABASE_URL:jdbc:postgresql://localhost:5432/psylog}
+spring.datasource.username=${DATABASE_USERNAME:YOUR_DB_USERNAME}
+spring.datasource.password=${DATABASE_PASSWORD:YOUR_DB_PASSWORD}
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 # JPA
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.hibernate.ddl-auto=${JPA_DDL_AUTO:update}
+spring.jpa.show-sql=${JPA_SHOW_SQL:true}
+spring.jpa.properties.hibernate.format_sql=${JPA_SHOW_SQL:true}
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 
 # JWT
-jwt.secret=YOUR_JWT_SECRET
-jwt.expiration=86400000
+jwt.secret=${JWT_SECRET:YOUR_JWT_SECRET}
+jwt.expiration=${JWT_EXPIRATION:86400000}
 
 # Admin seed
-admin.email=YOUR_ADMIN_EMAIL
-admin.password=YOUR_ADMIN_PASSWORD
+admin.email=${ADMIN_EMAIL:YOUR_ADMIN_EMAIL}
+admin.password=${ADMIN_PASSWORD:YOUR_ADMIN_PASSWORD}
+
+# CORS — comma separated origin list
+cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+# Auth cookie — production: true / None / .yourdomain.com
+cookie.secure=${COOKIE_SECURE:false}
+cookie.same-site=${COOKIE_SAME_SITE:Lax}
+cookie.domain=${COOKIE_DOMAIN:}
+
+# Mail (Gmail SMTP) — MAIL_APP_PASSWORD must be a Gmail app password
+spring.mail.host=${MAIL_HOST:smtp.gmail.com}
+spring.mail.port=${MAIL_PORT:587}
+spring.mail.username=${MAIL_USERNAME:}
+spring.mail.password=${MAIL_APP_PASSWORD:}
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+
+# Notification target email
+app.notification.email=${NOTIFICATION_EMAIL:}
