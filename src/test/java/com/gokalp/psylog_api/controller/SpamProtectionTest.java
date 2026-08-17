@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // HTTP-level tests for the spam protection on the two public endpoints that send mail.
 // Configured limits (test + default profile): contact 3/hour, comment 5/hour.
 // Every test uses its own client IP so the shared in-memory limiter cannot leak state.
+// The IP is sent through CF-Connecting-IP — the header production actually relies on.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 class SpamProtectionTest {
 
@@ -78,7 +79,7 @@ class SpamProtectionTest {
 
     private void postContact(String ip, String website, int expectedStatus) throws Exception {
         mockMvc.perform(post("/api/contact")
-                        .header("X-Forwarded-For", ip)
+                        .header("CF-Connecting-IP", ip)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(contactBody(website)))
                 .andExpect(status().is(expectedStatus));
@@ -90,7 +91,7 @@ class SpamProtectionTest {
     @Test
     void contact_withEmptyHoneypot_isProcessedNormally() throws Exception {
         mockMvc.perform(post("/api/contact")
-                        .header("X-Forwarded-For", "10.10.0.1")
+                        .header("CF-Connecting-IP", "10.10.0.1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(contactBody("")))
                 .andExpect(status().isOk())
@@ -104,7 +105,7 @@ class SpamProtectionTest {
     @Test
     void contact_withFilledHoneypot_isDroppedButLooksSuccessful() throws Exception {
         mockMvc.perform(post("/api/contact")
-                        .header("X-Forwarded-For", "10.10.0.2")
+                        .header("CF-Connecting-IP", "10.10.0.2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(contactBody("http://spam.example.com")))
                 .andExpect(status().isOk())
@@ -120,7 +121,7 @@ class SpamProtectionTest {
                 1L, "Jane Doe", "jane@example.com", "Harika bir yazı.", LocalDateTime.of(2026, 5, 1, 10, 0)));
 
         mockMvc.perform(post("/api/posts/1/comments")
-                        .header("X-Forwarded-For", "10.10.0.3")
+                        .header("CF-Connecting-IP", "10.10.0.3")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(commentBody(null)))
                 .andExpect(status().isCreated())
@@ -133,7 +134,7 @@ class SpamProtectionTest {
     @Test
     void comment_withFilledHoneypot_isDroppedButLooksSuccessful() throws Exception {
         mockMvc.perform(post("/api/posts/1/comments")
-                        .header("X-Forwarded-For", "10.10.0.4")
+                        .header("CF-Connecting-IP", "10.10.0.4")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(commentBody("http://spam.example.com")))
                 .andExpect(status().isCreated())
@@ -155,7 +156,7 @@ class SpamProtectionTest {
         }
 
         mockMvc.perform(post("/api/contact")
-                        .header("X-Forwarded-For", ip)
+                        .header("CF-Connecting-IP", ip)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(contactBody(null)))
                 .andExpect(status().isTooManyRequests())
@@ -184,6 +185,28 @@ class SpamProtectionTest {
         postContact("10.20.0.3", null, 200);
     }
 
+    // A bot rotating a fake X-Forwarded-For on every request must not get a fresh bucket:
+    // the unspoofable Cloudflare header decides which bucket the request lands in.
+    @Test
+    void contact_spoofedForwardedForCannotBypassTheLimit() throws Exception {
+        String realIp = "10.20.0.4";
+        for (int i = 0; i < 3; i++) {
+            mockMvc.perform(post("/api/contact")
+                            .header("CF-Connecting-IP", realIp)
+                            .header("X-Forwarded-For", "1.2.3." + i)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(contactBody(null)))
+                    .andExpect(status().isOk());
+        }
+
+        mockMvc.perform(post("/api/contact")
+                        .header("CF-Connecting-IP", realIp)
+                        .header("X-Forwarded-For", "9.9.9.9")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(contactBody(null)))
+                .andExpect(status().isTooManyRequests());
+    }
+
     // Comments have their own budget (5/hour) and their own bucket.
     @Test
     void comment_overTheHourlyLimit_returns429() throws Exception {
@@ -193,14 +216,14 @@ class SpamProtectionTest {
         String ip = "10.30.0.1";
         for (int i = 0; i < 5; i++) {
             mockMvc.perform(post("/api/posts/1/comments")
-                            .header("X-Forwarded-For", ip)
+                            .header("CF-Connecting-IP", ip)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(commentBody(null)))
                     .andExpect(status().isCreated());
         }
 
         mockMvc.perform(post("/api/posts/1/comments")
-                        .header("X-Forwarded-For", ip)
+                        .header("CF-Connecting-IP", ip)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(commentBody(null)))
                 .andExpect(status().isTooManyRequests())
