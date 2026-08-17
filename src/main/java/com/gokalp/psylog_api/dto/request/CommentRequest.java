@@ -16,6 +16,12 @@ public class CommentRequest {
     @Size(max = 1000, message = "Yorum en fazla 1000 karakter olabilir")
     private String content;
 
+    // Honeypot — hidden field on the form, only bots fill it in. No validation on purpose.
+    private String website;
+
+    public String getWebsite() { return website; }
+    public void setWebsite(String website) { this.website = website; }
+
     public String getAuthor() { return author; }
     public void setAuthor(String author) { this.author = author; }
     public String getEmail() { return email; }

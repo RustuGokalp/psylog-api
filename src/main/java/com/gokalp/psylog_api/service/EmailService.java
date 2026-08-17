@@ -13,6 +13,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -25,6 +26,14 @@ public class EmailService {
     private final String from;
     private final String notificationEmail;
 
+    // Gmail quota safety net. Field injection keeps the constructor stable for unit tests;
+    // the initializer is the fallback used outside a Spring context.
+    @Value("${app.mail.daily-limit:50}")
+    private int dailyLimit = 50;
+
+    private LocalDate quotaDate = LocalDate.now();
+    private int sentToday = 0;
+
     public EmailService(JavaMailSender mailSender,
                         @Value("${spring.mail.username}") String from,
                         @Value("${app.notification.email}") String notificationEmail) {
@@ -33,8 +42,29 @@ public class EmailService {
         this.notificationEmail = notificationEmail;
     }
 
+    /**
+     * Consumes one slot of the daily notification budget. Returns false when the budget
+     * is used up — the caller then skips sending; the record itself is already persisted.
+     */
+    private synchronized boolean consumeDailyQuota() {
+        LocalDate today = LocalDate.now();
+        if (!today.equals(quotaDate)) {
+            quotaDate = today;
+            sentToday = 0;
+        }
+        if (sentToday >= dailyLimit) {
+            return false;
+        }
+        sentToday++;
+        return true;
+    }
+
     @Async
     public void sendContactNotification(ContactMessage msg) {
+        if (!consumeDailyQuota()) {
+            log.warn("Günlük mail limiti ({}) doldu — iletişim bildirimi gönderilmedi, kayıt veritabanında mevcut", dailyLimit);
+            return;
+        }
         try {
             MimeMessage mime = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mime, "UTF-8");
@@ -51,6 +81,10 @@ public class EmailService {
 
     @Async
     public void sendCommentNotification(Comment comment) {
+        if (!consumeDailyQuota()) {
+            log.warn("Günlük mail limiti ({}) doldu — yorum bildirimi gönderilmedi, kayıt veritabanında mevcut", dailyLimit);
+            return;
+        }
         try {
             MimeMessage mime = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mime, "UTF-8");

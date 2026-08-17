@@ -28,6 +28,13 @@ public class ContactRequest {
     @Schema(example = "532-111-22-33")
     private String mobilePhone;
 
+    // Honeypot — hidden field on the form, only bots fill it in. No validation on purpose.
+    @Schema(description = "Honeypot alanı — gerçek kullanıcılar boş bırakır", example = "")
+    private String website;
+
+    public String getWebsite() { return website; }
+    public void setWebsite(String website) { this.website = website; }
+
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
     public String getEmail() { return email; }

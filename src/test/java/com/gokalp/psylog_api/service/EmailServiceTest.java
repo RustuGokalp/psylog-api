@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -162,5 +163,51 @@ class EmailServiceTest {
         String body = sentBody();
         assertTrue(body.contains("Zeynep"));
         assertTrue(body.contains("Görüşmek isterim."));
+    }
+
+    // ─── Daily quota (Gmail safety net) ───────────────────────────────────────
+
+    // Once the daily budget is used up no further mail leaves the server. The caller
+    // is not told about it — the record is already persisted by the calling service.
+    @Test
+    void dailyQuota_whenExhausted_stopsSendingMail() {
+        ReflectionTestUtils.setField(emailService, "dailyLimit", 2);
+
+        emailService.sendCommentNotification(buildComment(1L, "A", "a@example.com", "1", "Post"));
+        emailService.sendCommentNotification(buildComment(2L, "B", "b@example.com", "2", "Post"));
+        emailService.sendCommentNotification(buildComment(3L, "C", "c@example.com", "3", "Post"));
+
+        verify(mailSender, times(2)).send(any(MimeMessage.class));
+    }
+
+    // The budget is shared by both notification types — it guards one Gmail account.
+    @Test
+    void dailyQuota_isSharedBetweenContactAndCommentNotifications() {
+        ReflectionTestUtils.setField(emailService, "dailyLimit", 1);
+
+        ContactMessage msg = new ContactMessage();
+        msg.setFullName("Zeynep");
+        msg.setEmail("zeynep@example.com");
+        msg.setSubject("Konu");
+        msg.setMessage("Mesaj");
+        ReflectionTestUtils.setField(msg, "createdAt", LocalDateTime.of(2026, 5, 23, 9, 0));
+
+        emailService.sendContactNotification(msg);
+        emailService.sendCommentNotification(buildComment(1L, "A", "a@example.com", "içerik", "Post"));
+
+        verify(mailSender, times(1)).send(any(MimeMessage.class));
+    }
+
+    // A new day resets the counter.
+    @Test
+    void dailyQuota_resetsWhenTheDayChanges() {
+        ReflectionTestUtils.setField(emailService, "dailyLimit", 1);
+
+        emailService.sendCommentNotification(buildComment(1L, "A", "a@example.com", "1", "Post"));
+        // Pretend the last send happened yesterday.
+        ReflectionTestUtils.setField(emailService, "quotaDate", LocalDate.now().minusDays(1));
+        emailService.sendCommentNotification(buildComment(2L, "B", "b@example.com", "2", "Post"));
+
+        verify(mailSender, times(2)).send(any(MimeMessage.class));
     }
 }
