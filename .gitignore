@@ -35,5 +35,15 @@ build/
 ### VS Code ###
 .vscode/
 
+### macOS ###
+.DS_Store
+._*
+
+### Logs ###
+*.log
+logs/
+
 ### Sensitive config ###
 src/main/resources/application.properties
+.env
+.env.local
