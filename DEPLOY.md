@@ -10,26 +10,41 @@ Hedef: backend `https://api.psktugcetekin.com`, frontend `https://psktugcetekin.
   gizli değer yok — hepsi environment variable'dan okunur.
 - `Dockerfile` prod profilini otomatik aktif eder (`SPRING_PROFILES_ACTIVE=prod`).
 
-## 1. Postgres oluştur
+## 1. Veritabanı (Supabase)
 
-Railway → New → Database → PostgreSQL. Panelden `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`,
-`PGPASSWORD` değerlerini al.
+Supabase → New project. Önemli ayarlar:
 
-> Railway'in verdiği `DATABASE_URL` (`postgresql://...`) Spring için **kullanılamaz**.
-> JDBC formatına çevirmek gerekir (aşağıda).
+- **Region:** Central EU (Frankfurt) — sonradan değiştirilemez, backend ile aynı bölgede olmalı
+- **Enable Data API:** kapalı. Spring doğrudan JDBC ile bağlanıyor, PostgREST'e ihtiyaç yok
+- **Database password:** oluşturulduğu anda kaydet, bir daha gösterilmiyor
+
+Bağlantı için **Session pooler** bilgilerini kullan (Connect → Direct → Session pooler).
+"Direct connection" IPv6-only olduğu için çoğu hosting platformundan erişilemez; transaction
+pooler (6543) ise Hibernate'in prepared statement'larıyla sorun çıkarır.
+
+Supabase'de veritabanı adı `postgres`, kullanıcı adı `postgres.<project-ref>` şeklindedir.
+
+### Lokal veriyi aktarma
+
+```bash
+pg_dump -d psylog --no-owner --no-privileges --clean --if-exists -f psylog-dump.sql
+PGPASSWORD='<db-sifresi>' psql -h <pooler-host> -p 5432 -U postgres.<project-ref> -d postgres -f psylog-dump.sql
+```
+
+Dump admin kullanıcısını da taşır; bu durumda seed çalışmaz, giriş bilgileri lokaldekiyle aynı olur.
 
 ## 2. Backend servisini oluştur
 
 Railway → New → Deploy from GitHub repo → `psylog-api`. Repoda `Dockerfile` olduğu için Railway
-onu kullanır; ayrı bir build ayarı gerekmez.
+onu kullanır; ayrı bir build ayarı gerekmez. Servisi Frankfurt (EU) bölgesine kur.
 
 ## 3. Environment variable'lar
 
 | Değişken               | Değer                                                                              |
 | ---------------------- | ---------------------------------------------------------------------------------- |
-| `DATABASE_URL`         | `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}` |
-| `DATABASE_USERNAME`    | `${{Postgres.PGUSER}}`                                                             |
-| `DATABASE_PASSWORD`    | `${{Postgres.PGPASSWORD}}`                                                         |
+| `DATABASE_URL`         | `jdbc:postgresql://<pooler-host>:5432/postgres?sslmode=require`                    |
+| `DATABASE_USERNAME`    | `postgres.<project-ref>`                                                           |
+| `DATABASE_PASSWORD`    | Supabase DB şifresi — olduğu gibi, encode etmeden                                  |
 | `JWT_SECRET`           | yeni üretilmiş güçlü değer — lokaldekini taşıma (`openssl rand -base64 48`)         |
 | `JWT_EXPIRATION`       | `86400000`                                                                         |
 | `ADMIN_EMAIL`          | admin e-postası                                                                    |
@@ -76,13 +91,13 @@ token=...; Path=/; Domain=.psktugcetekin.com; Max-Age=86400; Secure; HttpOnly; S
 `Access-Control-Allow-Origin: https://psktugcetekin.com` ve
 `Access-Control-Allow-Credentials: true` başlıkları da dönmeli.
 
-İlk deploy log'unda `Admin user created: ...` satırı görünmeli — seed admin sadece kullanıcı
-tablosu boşken oluşur. Admin şifresini sonradan değiştirmek istersen env'i değiştirmek yetmez,
-DB'deki satırı güncellemek gerekir.
+Seed admin sadece kullanıcı tablosu boşken oluşur; lokal veri aktarıldıysa admin satırı zaten
+gelir ve log'da `Admin user created` görünmez — bu normaldir. Admin şifresini sonradan
+değiştirmek istersen env'i değiştirmek yetmez, DB'deki satırı güncellemek gerekir.
 
 ## Notlar
 
-- `ddl-auto=update` ilk deploy için tabloları oluşturur. Şema oturduktan sonra `JPA_DDL_AUTO=validate`
+- `ddl-auto=update` şema yoksa tabloları oluşturur. Şema oturduktan sonra `JPA_DDL_AUTO=validate`
   yapıp migration'a geçmek daha güvenli.
 - Swagger production'da kapalı (`springdoc.*.enabled=false`).
 - Hata gövdesi frontend'in beklediği formatta (`timestamp/status/error/message/path`), stack trace sızmıyor.
