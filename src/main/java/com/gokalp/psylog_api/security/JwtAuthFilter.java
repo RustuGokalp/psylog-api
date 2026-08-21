@@ -26,6 +26,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
+    // The liveness endpoint is fully public and hit every few minutes by an external cron;
+    // there is nothing to authenticate, so skip token parsing entirely.
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return "/api/health".equals(request.getRequestURI());
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
